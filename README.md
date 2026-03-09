@@ -1,10 +1,11 @@
-# [Your Project Name]
+# SafeTransfer
 
 ## Team
 - **Team Name:** SafeTransfer Squad
 - **Members:**
   - Aelenei Alex-Ioan - software developer
   - Dima Florin-Alexandru - software developer
+  - Boca Bogdan - software developer
 
 ## Project Description
 
