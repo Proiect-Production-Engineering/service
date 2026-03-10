@@ -98,3 +98,55 @@ DELETE http://localhost:8080/api/todos/{{createTodo.response.body.id}}
 
 ### Delete user
 DELETE http://localhost:8080/api/users/{{createUser.response.body.id}}
+
+
+# ==========================================
+# Currency Exchange Rate Controller Endpoints
+# ==========================================
+
+### Get all exchange rates (currency exchange matrix)
+GET http://localhost:8080/api/exchange-rates
+
+### Get specific exchange rate
+GET http://localhost:8080/api/exchange-rates/rate?source=USD&target=EUR
+
+### Set/Create a new exchange rate
+# @name createExchangeRate
+POST http://localhost:8080/api/exchange-rates
+Content-Type: application/json
+
+{
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "exchangeRate": 0.92
+}
+
+### Update an existing exchange rate
+PUT http://localhost:8080/api/exchange-rates
+Content-Type: application/json
+
+{
+    "sourceCurrency": "EUR",
+    "targetCurrency": "USD",
+    "exchangeRate": 1.09
+}
+
+### Set RON to USD exchange rate
+POST http://localhost:8080/api/exchange-rates
+Content-Type: application/json
+
+{
+    "sourceCurrency": "RON",
+    "targetCurrency": "USD",
+    "exchangeRate": 0.22
+}
+
+### Set GBP to EUR exchange rate
+POST http://localhost:8080/api/exchange-rates
+Content-Type: application/json
+
+{
+    "sourceCurrency": "GBP",
+    "targetCurrency": "EUR",
+    "exchangeRate": 1.17
+}
