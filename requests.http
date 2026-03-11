@@ -108,17 +108,16 @@ DELETE http://localhost:8080/api/users/{{createUser.response.body.id}}
 GET http://localhost:8080/api/exchange-rates
 
 ### Get specific exchange rate
-GET http://localhost:8080/api/exchange-rates/rate?source=USD&target=EUR
+GET http://localhost:8080/api/exchange-rates/rate?source=EUR&target=USD
 
 ### Set/Create a new exchange rate
-# @name createExchangeRate
 POST http://localhost:8080/api/exchange-rates
 Content-Type: application/json
 
 {
-    "sourceCurrency": "USD",
-    "targetCurrency": "EUR",
-    "exchangeRate": 0.92
+    "sourceCurrency": "EUR",
+    "targetCurrency": "USD",
+    "exchangeRate": 1.17
 }
 
 ### Update an existing exchange rate
@@ -149,4 +148,14 @@ Content-Type: application/json
     "sourceCurrency": "GBP",
     "targetCurrency": "EUR",
     "exchangeRate": 1.17
+}
+
+### Convert amount between currencies
+POST http://localhost:8080/api/exchange-rates/convert
+Content-Type: application/json
+
+{
+    "amount": 150.50,
+    "sourceCurrency": "EUR",
+    "targetCurrency": "USD"
 }
