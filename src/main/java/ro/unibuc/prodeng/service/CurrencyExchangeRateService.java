@@ -1,8 +1,12 @@
 package ro.unibuc.prodeng.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -102,6 +106,11 @@ public class CurrencyExchangeRateService {
         "NIO"  // Nicaraguan Córdoba
     };
 
+    private static final Set<String> SUPPORTED_CURRENCIES = new HashSet<>(List.of(CURRENCIES));
+    private static final BigDecimal MIN_RATE = new BigDecimal("0.0001");
+    private static final BigDecimal MAX_RATE = new BigDecimal("10000");
+    private static final int SCALE = 6; // 6 decimal places for exchange rates to balance precision and readability
+
     @PostConstruct
     public void initializeExchangeRates() {
         // Only initialize if database is empty
@@ -133,39 +142,49 @@ public class CurrencyExchangeRateService {
     }
 
     public ExchangeRateResponse setExchangeRate(SetExchangeRateRequest request) {
-        CurrencyExchangeRateEntity existingRate = exchangeRateRepository
-                .findBySourceCurrencyAndTargetCurrency(request.sourceCurrency(), request.targetCurrency())
-                .orElse(null);
+        validateCurrencies(request.sourceCurrency(), request.targetCurrency());
 
-        CurrencyExchangeRateEntity rateToSave;
-        if (existingRate != null) {
-            // Update existing rate
-            rateToSave = new CurrencyExchangeRateEntity(
-                    existingRate.id(),
-                    request.sourceCurrency(),
-                    request.targetCurrency(),
-                    request.exchangeRate()
-            );
-        } else {
-            // Create new rate
-            rateToSave = new CurrencyExchangeRateEntity(
-                    null,
-                    request.sourceCurrency(),
-                    request.targetCurrency(),
-                    request.exchangeRate()
-            );
-        }
+        BigDecimal sanitizedRate = sanitizeRate(request.exchangeRate());
+        CurrencyExchangeRateEntity saved = upsertRate(
+                request.sourceCurrency(),
+                request.targetCurrency(),
+                sanitizedRate
+        );
 
-        CurrencyExchangeRateEntity saved = exchangeRateRepository.save(rateToSave);
+        // Keep inverse in sync so conversions remain coherent
+        BigDecimal inverseRate = BigDecimal.ONE.divide(sanitizedRate, SCALE, RoundingMode.HALF_UP);
+        upsertRate(request.targetCurrency(), request.sourceCurrency(), inverseRate);
+
         return toResponse(saved);
     }
 
     public ExchangeRateResponse getExchangeRate(String sourceCurrency, String targetCurrency) {
+        validateCurrencies(sourceCurrency, targetCurrency);
+
         CurrencyExchangeRateEntity rate = exchangeRateRepository
                 .findBySourceCurrencyAndTargetCurrency(sourceCurrency, targetCurrency)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Exchange rate not found for " + sourceCurrency + " to " + targetCurrency));
         return toResponse(rate);
+    }
+
+    public BigDecimal convertAmount(BigDecimal amount, String sourceCurrency, String targetCurrency) {
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount is required");
+        }
+        validateCurrencies(sourceCurrency, targetCurrency);
+
+        if (sourceCurrency.equalsIgnoreCase(targetCurrency)) {
+            return amount.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        CurrencyExchangeRateEntity rate = exchangeRateRepository
+                .findBySourceCurrencyAndTargetCurrency(sourceCurrency, targetCurrency)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Exchange rate not found for " + sourceCurrency + " to " + targetCurrency));
+
+        BigDecimal converted = amount.multiply(BigDecimal.valueOf(rate.exchangeRate()));
+        return converted.setScale(2, RoundingMode.HALF_UP);
     }
 
     private ExchangeRateResponse toResponse(CurrencyExchangeRateEntity entity) {
@@ -175,5 +194,56 @@ public class CurrencyExchangeRateService {
                 entity.targetCurrency(),
                 entity.exchangeRate()
         );
+    }
+
+    private void validateCurrencies(String sourceCurrency, String targetCurrency) {
+        if (sourceCurrency == null || targetCurrency == null) {
+            throw new IllegalArgumentException("Currency codes cannot be null");
+        }
+        if (sourceCurrency.equalsIgnoreCase(targetCurrency)) {
+            throw new IllegalArgumentException("Source and target currencies must differ");
+        }
+        if (!SUPPORTED_CURRENCIES.contains(sourceCurrency.toUpperCase())) {
+            throw new IllegalArgumentException("Unsupported source currency: " + sourceCurrency);
+        }
+        if (!SUPPORTED_CURRENCIES.contains(targetCurrency.toUpperCase())) {
+            throw new IllegalArgumentException("Unsupported target currency: " + targetCurrency);
+        }
+    }
+
+    private BigDecimal sanitizeRate(Double rate) {
+        if (rate == null) {
+            throw new IllegalArgumentException("Exchange rate is required");
+        }
+        BigDecimal value = BigDecimal.valueOf(rate);
+        if (value.compareTo(MIN_RATE) < 0 || value.compareTo(MAX_RATE) > 0) {
+            throw new IllegalArgumentException("Exchange rate must be between " + MIN_RATE + " and " + MAX_RATE);
+        }
+        return value.setScale(SCALE, RoundingMode.HALF_UP);
+    }
+
+    private CurrencyExchangeRateEntity upsertRate(String sourceCurrency, String targetCurrency, BigDecimal rate) {
+        CurrencyExchangeRateEntity existingRate = exchangeRateRepository
+                .findBySourceCurrencyAndTargetCurrency(sourceCurrency, targetCurrency)
+                .orElse(null);
+
+        CurrencyExchangeRateEntity rateToSave;
+        if (existingRate != null) {
+            rateToSave = new CurrencyExchangeRateEntity(
+                    existingRate.id(),
+                    sourceCurrency.toUpperCase(),
+                    targetCurrency.toUpperCase(),
+                    rate.doubleValue()
+            );
+        } else {
+            rateToSave = new CurrencyExchangeRateEntity(
+                    null,
+                    sourceCurrency.toUpperCase(),
+                    targetCurrency.toUpperCase(),
+                    rate.doubleValue()
+            );
+        }
+
+        return exchangeRateRepository.save(rateToSave);
     }
 }
