@@ -17,9 +17,12 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     @Value("${mongodb.connection.url}")
     private String connectionURL;
 
+    @Value("${mongodb.database:prod-eng}")
+    private String databaseName;
+
     @Override
     protected String getDatabaseName() {
-        return "test";
+        return databaseName;
     }
 
     @Override

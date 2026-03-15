@@ -22,7 +22,7 @@ public class HealthController {
         Map<String, Object> health = new HashMap<>();
         health.put("status", "UP");
         health.put("timestamp", LocalDateTime.now());
-        health.put("service", "Production Engineering Service");
+        health.put("service", "SafeTransfer service");
 
         return ResponseEntity.ok(health);
     }

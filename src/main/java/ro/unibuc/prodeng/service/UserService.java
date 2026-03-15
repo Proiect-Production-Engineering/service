@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import ro.unibuc.prodeng.model.RoleEntity;
@@ -24,6 +25,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public UserResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -51,17 +55,22 @@ public class UserService {
     }
 
     public UserResponse createUser(CreateUserRequest request) {
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        if (ADMIN_USERNAME.equals(request.username())) {
+            throw new IllegalArgumentException("Username 'admin' is reserved.");
+        }
+        if (userRepository.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username already exists: " + request.username());
+        }
+        if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email already exists: " + request.email());
         }
-        UserEntity user = new UserEntity(
-                null,
-                null,
-                request.name(),
-                request.email(),
-                null,
-                new ArrayList<>(List.of(new RoleEntity("ROLE_USER")))
-        );
+        UserEntity user = UserEntity.builder()
+                .username(request.username())
+                .name(request.name())
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .roles(new ArrayList<>(List.of(new RoleEntity("ROLE_USER"))))
+                .build();
         UserEntity saved = userRepository.save(user);
         return toResponse(saved);
     }

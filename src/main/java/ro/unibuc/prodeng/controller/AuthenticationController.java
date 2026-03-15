@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ro.unibuc.prodeng.request.SignInRequest;
 import ro.unibuc.prodeng.request.SignUpRequest;
-import ro.unibuc.prodeng.service.AuthenticationServiceImplementation;
+import ro.unibuc.prodeng.service.AuthenticationService;
 
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication")
 public class AuthenticationController {
     @Autowired
-    private AuthenticationServiceImplementation authenticationService;
+    private AuthenticationService authenticationService;
 
     @PostMapping("/signin")
     @Operation(summary = "Authenticate and receive a JWT token")

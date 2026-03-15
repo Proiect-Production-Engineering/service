@@ -40,20 +40,13 @@ public class JwtUtilities {
     }
 
     public String getUserNameFromJwtToken(String token) {
-        if (token.startsWith(HEADER_PREFIX)) {
-            token = token.substring(HEADER_PREFIX.length());
-        }
-
-        if (validateJwtToken(token)) {
-            return Jwts.parserBuilder().setSigningKey(key()).build()
-                    .parseClaimsJws(token).getBody().getSubject();
-        }
-        return null;
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                .parseClaimsJws(token).getBody().getSubject();
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
+            Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);
             return true;
         } catch (MalformedJwtException e) {
             log.error("Invalid JWT token: {}", e.getMessage());

@@ -1,11 +1,11 @@
 package ro.unibuc.prodeng.service;
 
-import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,9 +14,9 @@ public class UserDetailsServiceImplementation implements UserDetailsService {
     UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws EntityNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with username: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         return ro.unibuc.prodeng.model.UserDetails.build(user);
     }
 }
