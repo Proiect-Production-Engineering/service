@@ -1,12 +1,30 @@
 package ro.unibuc.prodeng.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "users")
-public record UserEntity(
+public class UserEntity {
     @Id
-    String id,
-    String name,
-    String email
-) {}
+    private String id;
+    @Indexed(unique = true, sparse = true)
+    private String username;
+    private String name;
+    @Indexed(unique = true)
+    private String email;
+    private String password;
+    @Builder.Default
+    private List<RoleEntity> roles = new ArrayList<>();
+}
