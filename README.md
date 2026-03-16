@@ -16,7 +16,7 @@ SafeTransfer is a secure banking application that allows users to manage bank ac
 - User accounts
 - Transactions between accounts
 - Account balance sheets
-- Admininistrator visibility over all transactions
+- Administrator visibility over all transactions
 
 ### Technical Stack
 - **Backend:** Spring Boot (Java 21)

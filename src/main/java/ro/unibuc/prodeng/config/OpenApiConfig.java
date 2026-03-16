@@ -8,7 +8,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-        info = @Info(title = "SafeTransfer", version = "0.0.1")
+        info = @Info(
+                title = "SafeTransfer API",
+                version = "1.0.0",
+                description = "REST API for managing users, currencies, countries, and exchange rates"
+        )
 )
 @SecurityScheme(
         name = "Authentication",
