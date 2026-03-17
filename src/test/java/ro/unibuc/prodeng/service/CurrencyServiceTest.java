@@ -45,4 +45,15 @@ class CurrencyServiceTest {
         assertEquals("Euro", result.get(0).name());
         assertEquals("RON", result.get(1).code());
     }
+
+    @Test
+    void getCurrencyById_existing_returnsResponse() {
+        CurrencyEntity eur = new CurrencyEntity("1", "Euro", "EUR");
+        when(currencyRepository.findById("1")).thenReturn(Optional.of(eur));
+
+        CurrencyResponse result = currencyService.getCurrencyById("1");
+
+        assertEquals("1", result.id());
+        assertEquals("EUR", result.code());
+    }
 }
