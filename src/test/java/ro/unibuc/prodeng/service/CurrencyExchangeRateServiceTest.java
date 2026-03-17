@@ -166,4 +166,12 @@ class CurrencyExchangeRateServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", "RON"));
     }
+
+    @Test
+    void validateCurrencies_unknownTarget_throwsIllegalArgument() {
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("RON")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", "RON"));
+    }
 }
