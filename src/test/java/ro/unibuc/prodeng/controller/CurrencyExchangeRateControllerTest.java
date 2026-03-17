@@ -70,4 +70,16 @@ class CurrencyExchangeRateControllerTest {
                 .andExpect(jsonPath("$.targetCurrency", equalTo("RON")))
                 .andExpect(jsonPath("$.exchangeRate", equalTo(4.5)));
     }
+
+    @Test
+    void getExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        when(exchangeRateService.getExchangeRate("EUR", "RON"))
+                .thenThrow(new IllegalArgumentException("Exchange rate not found for EUR to RON"));
+
+        mockMvc.perform(get("/api/exchange-rates/rate")
+                        .param("source", "EUR")
+                        .param("target", "RON"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", equalTo("Exchange rate not found for EUR to RON")));
+    }
 }
