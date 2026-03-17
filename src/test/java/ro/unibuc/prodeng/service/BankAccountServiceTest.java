@@ -357,4 +357,47 @@ class BankAccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
         verify(transactionRepository, never()).saveAll(any(List.class));
     }
+
+    @Test
+    void testTransfer_targetBalanceNull_treatedAsZeroAndUpdated() {
+        // Arrange
+        BankAccountEntity source = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 1000.0);
+
+        BankAccountEntity target = new BankAccountEntity();
+        target.setId("acc-2");
+        target.setUserId("user-2");
+        target.setCurrencyCode("EUR");
+        target.setDeleted(false);
+
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
+        when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.of(target));
+
+        when(transactionRepository.saveAll(any(List.class))).thenAnswer(invocation -> {
+            List<TransactionEntity> txs = invocation.getArgument(0);
+            TransactionEntity debit = txs.get(0);
+            TransactionEntity credit = txs.get(1);
+            return List.of(
+                    new TransactionEntity("tx-1", debit.accountId(), debit.type(), debit.amount(), debit.description(), debit.timestamp()),
+                    new TransactionEntity("tx-2", credit.accountId(), credit.type(), credit.amount(), credit.description(), credit.timestamp())
+            );
+        });
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("200.00"),
+                "Null target balance"
+        );
+
+        // Act
+        List<TransactionResponse> result = bankAccountService.transfer(request);
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(800.0, source.getBalance());
+        assertEquals(200.0, target.getBalance());
+        verify(bankAccountRepository).save(source);
+        verify(bankAccountRepository).save(target);
+        verify(transactionRepository).saveAll(any(List.class));
+    }
 }
