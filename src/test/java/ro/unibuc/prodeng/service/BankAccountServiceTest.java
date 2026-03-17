@@ -73,4 +73,53 @@ class BankAccountServiceTest {
     private TransactionEntity makeTransaction(String id, String accountId, TransactionType type, BigDecimal amount) {
         return new TransactionEntity(id, accountId, type, amount, "desc", Instant.now());
     }
+    
+    @Test
+    void testTransfer_validRequest_createsDebitAndCreditTransactions() {
+        // Arrange
+        BankAccountEntity source = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 1000.0);
+        BankAccountEntity target = makeAccount("acc-2", "user-2", "EUR", false, 0.0);
+
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
+        when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.of(target));
+
+        when(transactionRepository.saveAll(any(List.class))).thenAnswer(invocation -> {
+            List<TransactionEntity> txs = invocation.getArgument(0);
+            TransactionEntity debit = txs.get(0);
+            TransactionEntity credit = txs.get(1);
+            return List.of(
+                    new TransactionEntity("tx-1", debit.accountId(), debit.type(), debit.amount(), debit.description(), debit.timestamp()),
+                    new TransactionEntity("tx-2", credit.accountId(), credit.type(), credit.amount(), credit.description(), credit.timestamp())
+            );
+        });
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("200.00"),
+                "Transfer test"
+        );
+
+        // Act
+        List<TransactionResponse> result = bankAccountService.transfer(request);
+
+        // Assert
+        assertEquals(2, result.size());
+
+        TransactionResponse debit = result.stream()
+                .filter(tx -> tx.accountId().equals("acc-1"))
+                .findFirst()
+                .orElseThrow();
+        TransactionResponse credit = result.stream()
+                .filter(tx -> tx.accountId().equals("acc-2"))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("DEBIT", debit.type());
+        assertEquals(new BigDecimal("200.00"), debit.amount());
+        assertEquals("CREDIT", credit.type());
+        assertEquals(new BigDecimal("200.00"), credit.amount());
+
+        verify(transactionRepository, times(1)).saveAll(any(List.class));
+    }
 }
