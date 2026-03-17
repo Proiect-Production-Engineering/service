@@ -286,4 +286,19 @@ class BankAccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
         verify(transactionRepository, never()).saveAll(any(List.class));
     }
+
+    @Test
+    void testTransfer_zeroAmount_throwsIllegalArgumentException() {
+        // Arrange
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                BigDecimal.ZERO,
+                "Zero amount"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verifyNoInteractions(bankAccountRepository, transactionRepository);
+    }
 }
