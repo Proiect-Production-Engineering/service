@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.TransactionResponse;
 import ro.unibuc.prodeng.service.BankAccountService;
@@ -85,5 +86,26 @@ class BankAccountControllerTest {
                 .andExpect(jsonPath("$[0].type").value("DEBIT"))
                 .andExpect(jsonPath("$[1].accountId").value("acc-2"))
                 .andExpect(jsonPath("$[1].type").value("CREDIT"));
+    }
+
+    @Test
+    void testTransferEndpoint_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        // Arrange
+        when(bankAccountService.transfer(any(CreateTransferRequest.class)))
+                .thenThrow(new IllegalArgumentException("Insufficient funds in source account"));
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("200.00"),
+                "Too much"
+        );
+
+        // Act & Assert
+        mockMvc.perform(post("/api/accounts/transfer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Insufficient funds in source account"));
     }
 }
