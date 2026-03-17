@@ -96,4 +96,17 @@ class CurrencyExchangeRateControllerTest {
                 .andExpect(jsonPath("$.id", equalTo("1")))
                 .andExpect(jsonPath("$.exchangeRate", equalTo(4.5)));
     }
+
+    @Test
+    void setExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
+        when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class)))
+                .thenThrow(new IllegalArgumentException("Unsupported currency"));
+
+        mockMvc.perform(post("/api/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", equalTo("Unsupported currency")));
+    }
 }
