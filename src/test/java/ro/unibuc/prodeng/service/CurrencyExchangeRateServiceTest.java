@@ -98,4 +98,14 @@ class CurrencyExchangeRateServiceTest {
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.setExchangeRate(request));
         verify(exchangeRateRepository, never()).save(any(CurrencyExchangeRateEntity.class));
     }
+
+    @Test
+    void setExchangeRate_rateTooLow_throwsIllegalArgument() {
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 0.00001);
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("RON")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.setExchangeRate(request));
+        verify(exchangeRateRepository, never()).save(any(CurrencyExchangeRateEntity.class));
+    }
 }
