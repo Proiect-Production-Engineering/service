@@ -340,6 +340,7 @@ class BankAccountServiceTest {
         source.setUserId(CURRENT_USER_ID);
         source.setCurrencyCode("EUR");
         source.setDeleted(false);
+        source.setBalance(null);
 
         BankAccountEntity target = makeAccount("acc-2", "user-2", "EUR", false, 0.0);
 
