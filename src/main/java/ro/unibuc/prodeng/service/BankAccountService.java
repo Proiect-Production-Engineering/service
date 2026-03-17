@@ -166,8 +166,7 @@ public class BankAccountService {
             throw new IllegalArgumentException("Source and target accounts must have the same currency");
         }
 
-        BigDecimal sourceBalance = BigDecimal.valueOf(
-            sourceAccount.getBalance() == null ? 0.0 : sourceAccount.getBalance());
+        BigDecimal sourceBalance = sourceAccount.getBalance() == null ? BigDecimal.ZERO : BigDecimal.valueOf(sourceAccount.getBalance());
         if (sourceBalance.compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient funds in source account");
         }
@@ -176,8 +175,7 @@ public class BankAccountService {
         String description = request.description();
 
         // Update stored balances atomically within the transaction
-        BigDecimal targetBalance = BigDecimal.valueOf(
-            targetAccount.getBalance() == null ? 0.0 : targetAccount.getBalance());
+        BigDecimal targetBalance = targetAccount.getBalance() == null ? BigDecimal.ZERO : BigDecimal.valueOf(targetAccount.getBalance());
 
         BigDecimal updatedSource = sourceBalance.subtract(amount);
         BigDecimal updatedTarget = targetBalance.add(amount);
