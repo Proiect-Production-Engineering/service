@@ -63,4 +63,15 @@ class CurrencyServiceTest {
 
         assertThrows(EntityNotFoundException.class, () -> currencyService.getCurrencyById("1"));
     }
+
+    @Test
+    void getCurrencyByCode_existing_returnsResponse_uppercasesCode() {
+        CurrencyEntity eur = new CurrencyEntity("1", "Euro", "EUR");
+        when(currencyRepository.findByCode("EUR")).thenReturn(Optional.of(eur));
+
+        CurrencyResponse result = currencyService.getCurrencyByCode("eur");
+
+        assertEquals("EUR", result.code());
+        verify(currencyRepository).findByCode("EUR");
+    }
 }
