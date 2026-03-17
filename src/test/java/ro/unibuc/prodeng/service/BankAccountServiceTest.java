@@ -369,6 +369,7 @@ class BankAccountServiceTest {
         target.setUserId("user-2");
         target.setCurrencyCode("EUR");
         target.setDeleted(false);
+        target.setBalance(null);
 
         when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
         when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.of(target));
