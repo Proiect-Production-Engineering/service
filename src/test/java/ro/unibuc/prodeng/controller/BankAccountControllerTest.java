@@ -108,4 +108,25 @@ class BankAccountControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Insufficient funds in source account"));
     }
+
+    @Test
+    void testTransferEndpoint_whenServiceThrowsEntityNotFound_returnsNotFound() throws Exception {
+        // Arrange
+        when(bankAccountService.transfer(any(CreateTransferRequest.class)))
+                .thenThrow(new EntityNotFoundException("acc-1"));
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("100.00"),
+                "Missing source"
+        );
+
+        // Act & Assert
+        mockMvc.perform(post("/api/accounts/transfer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").exists());
+    }
 }
