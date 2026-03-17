@@ -45,4 +45,15 @@ class CurrencyExchangeRateControllerTest {
                 .build();
         objectMapper = new ObjectMapper();
     }
+
+    @Test
+    void getAllExchangeRates_returnsMatrix() throws Exception {
+        Map<String, Double> matrix = Map.of("EUR_RON", 4.5, "RON_EUR", 0.22);
+        when(exchangeRateService.getAllExchangeRates()).thenReturn(matrix);
+
+        mockMvc.perform(get("/api/exchange-rates"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.EUR_RON", equalTo(4.5)))
+                .andExpect(jsonPath("$.RON_EUR", equalTo(0.22)));
+    }
 }
