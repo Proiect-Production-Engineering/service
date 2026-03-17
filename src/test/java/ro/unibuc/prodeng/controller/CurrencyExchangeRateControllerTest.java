@@ -82,4 +82,18 @@ class CurrencyExchangeRateControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", equalTo("Exchange rate not found for EUR to RON")));
     }
+
+    @Test
+    void setExchangeRate_success_returnsCreated() throws Exception {
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
+        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
+        when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", equalTo("1")))
+                .andExpect(jsonPath("$.exchangeRate", equalTo(4.5)));
+    }
 }
