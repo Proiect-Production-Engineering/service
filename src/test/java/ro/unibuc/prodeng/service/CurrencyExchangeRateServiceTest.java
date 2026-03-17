@@ -36,4 +36,17 @@ class CurrencyExchangeRateServiceTest {
 
     @InjectMocks
     private CurrencyExchangeRateService exchangeRateService;
+
+    @Test
+    void getAllExchangeRates_returnsExchangeMatrix() {
+        CurrencyExchangeRateEntity eurRon = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
+        CurrencyExchangeRateEntity ronEur = new CurrencyExchangeRateEntity("2", "RON", "EUR", 0.22);
+        when(exchangeRateRepository.findAll()).thenReturn(List.of(eurRon, ronEur));
+
+        Map<String, Double> result = exchangeRateService.getAllExchangeRates();
+
+        assertEquals(2, result.size());
+        assertEquals(4.5, result.get("EUR_RON"));
+        assertEquals(0.22, result.get("RON_EUR"));
+    }
 }
