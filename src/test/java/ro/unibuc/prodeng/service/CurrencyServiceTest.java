@@ -99,4 +99,14 @@ class CurrencyServiceTest {
 
         assertThrows(EntityNotFoundException.class, () -> currencyService.getCurrencyEntityByCode("eur"));
     }
+
+    @Test
+    void createCurrency_whenCodeAlreadyExists_throwsIllegalArgument() {
+        CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "eur");
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> currencyService.createCurrency(request));
+        verify(currencyRepository).existsByCode("EUR");
+        verifyNoMoreInteractions(currencyRepository);
+    }
 }
