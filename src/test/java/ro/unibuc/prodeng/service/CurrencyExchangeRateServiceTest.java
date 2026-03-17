@@ -67,4 +67,25 @@ class CurrencyExchangeRateServiceTest {
         assertEquals(4.5, response.exchangeRate());
         verify(exchangeRateRepository, times(2)).save(any(CurrencyExchangeRateEntity.class));
     }
+
+    @Test
+    void setExchangeRate_existingPair_updatesForwardAndInverse() {
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 5.0);
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("RON")).thenReturn(true);
+
+        CurrencyExchangeRateEntity existing = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
+        when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("EUR", "RON"))
+                .thenReturn(Optional.of(existing));
+        when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("RON", "EUR"))
+                .thenReturn(Optional.empty());
+        when(exchangeRateRepository.save(any(CurrencyExchangeRateEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        ExchangeRateResponse response = exchangeRateService.setExchangeRate(request);
+
+        assertEquals("EUR", response.sourceCurrency());
+        assertEquals("RON", response.targetCurrency());
+        verify(exchangeRateRepository, times(2)).save(any(CurrencyExchangeRateEntity.class));
+    }
 }
