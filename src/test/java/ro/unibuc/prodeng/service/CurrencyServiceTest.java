@@ -143,4 +143,14 @@ class CurrencyServiceTest {
         verify(currencyRepository).deleteById("1");
     }
 
+    @Test
+    void existsByCode_delegatesToRepositoryWithUppercase() {
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+
+        boolean result = currencyService.existsByCode("eur");
+
+        assertEquals(true, result);
+        verify(currencyRepository).existsByCode("EUR");
+        verifyNoMoreInteractions(currencyRepository);
+    }
 }
