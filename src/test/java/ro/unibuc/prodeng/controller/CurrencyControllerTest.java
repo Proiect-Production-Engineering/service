@@ -116,4 +116,17 @@ class CurrencyControllerTest {
                 .andExpect(jsonPath("$.id", equalTo("1")))
                 .andExpect(jsonPath("$.code", equalTo("EUR")));
     }
+
+    @Test
+    void createCurrency_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "EUR");
+        when(currencyService.createCurrency(any(CreateCurrencyRequest.class)))
+                .thenThrow(new IllegalArgumentException("Currency with code already exists: EUR"));
+
+        mockMvc.perform(post("/api/currencies")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", equalTo("Currency with code already exists: EUR")));
+    }
 }
