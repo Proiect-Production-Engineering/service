@@ -39,7 +39,9 @@ class BankAccountControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(bankAccountController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(bankAccountController)
+                .setControllerAdvice(new ro.unibuc.prodeng.exception.GlobalExceptionHandler())
+                .build();
         objectMapper = new ObjectMapper();
     }
 
