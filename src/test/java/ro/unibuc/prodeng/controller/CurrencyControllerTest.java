@@ -48,4 +48,19 @@ class CurrencyControllerTest {
                 .build();
         objectMapper = new ObjectMapper();
     }
+
+    @Test
+    void getAllCurrencies_returnsList() throws Exception {
+        List<CurrencyResponse> responses = List.of(
+                new CurrencyResponse("1", "Euro", "EUR"),
+                new CurrencyResponse("2", "Romanian Leu", "RON")
+        );
+        when(currencyService.getAllCurrencies()).thenReturn(responses);
+
+        mockMvc.perform(get("/api/currencies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].code", equalTo("EUR")))
+                .andExpect(jsonPath("$[1].code", equalTo("RON")));
+    }
 }
