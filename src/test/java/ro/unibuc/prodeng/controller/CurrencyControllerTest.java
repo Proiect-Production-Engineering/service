@@ -93,4 +93,13 @@ class CurrencyControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code", equalTo("EUR")));
     }
+
+    @Test
+    void getCurrencyByCode_missing_returnsNotFound() throws Exception {
+        when(currencyService.getCurrencyByCode("EUR")).thenThrow(new EntityNotFoundException("EUR"));
+
+        mockMvc.perform(get("/api/currencies/by-code").param("code", "EUR"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").exists());
+    }
 }
