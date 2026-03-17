@@ -301,4 +301,19 @@ class BankAccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
         verifyNoInteractions(bankAccountRepository, transactionRepository);
     }
+
+    @Test
+    void testTransfer_negativeAmount_throwsIllegalArgumentException() {
+        // Arrange
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("-10.00"),
+                "Negative amount"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verifyNoInteractions(bankAccountRepository, transactionRepository);
+    }
 }
