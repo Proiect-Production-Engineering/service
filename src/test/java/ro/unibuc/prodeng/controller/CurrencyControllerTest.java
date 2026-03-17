@@ -51,12 +51,14 @@ class CurrencyControllerTest {
 
     @Test
     void getAllCurrencies_returnsList() throws Exception {
+        // Arrange
         List<CurrencyResponse> responses = List.of(
                 new CurrencyResponse("1", "Euro", "EUR"),
                 new CurrencyResponse("2", "Romanian Leu", "RON")
         );
         when(currencyService.getAllCurrencies()).thenReturn(responses);
 
+        // Act & Assert
         mockMvc.perform(get("/api/currencies"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -66,9 +68,11 @@ class CurrencyControllerTest {
 
     @Test
     void getCurrencyById_existing_returnsCurrency() throws Exception {
+        // Arrange
         CurrencyResponse response = new CurrencyResponse("1", "Euro", "EUR");
         when(currencyService.getCurrencyById("1")).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(get("/api/currencies/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", equalTo("1")))
@@ -77,8 +81,10 @@ class CurrencyControllerTest {
 
     @Test
     void getCurrencyById_missing_returnsNotFound() throws Exception {
+        // Arrange
         when(currencyService.getCurrencyById("1")).thenThrow(new EntityNotFoundException("1"));
 
+        // Act & Assert
         mockMvc.perform(get("/api/currencies/1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").exists());
@@ -86,9 +92,11 @@ class CurrencyControllerTest {
 
     @Test
     void getCurrencyByCode_existing_returnsCurrency() throws Exception {
+        // Arrange
         CurrencyResponse response = new CurrencyResponse("1", "Euro", "EUR");
         when(currencyService.getCurrencyByCode("EUR")).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(get("/api/currencies/by-code").param("code", "EUR"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code", equalTo("EUR")));
@@ -96,8 +104,10 @@ class CurrencyControllerTest {
 
     @Test
     void getCurrencyByCode_missing_returnsNotFound() throws Exception {
+        // Arrange
         when(currencyService.getCurrencyByCode("EUR")).thenThrow(new EntityNotFoundException("EUR"));
 
+        // Act & Assert
         mockMvc.perform(get("/api/currencies/by-code").param("code", "EUR"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").exists());
@@ -105,10 +115,12 @@ class CurrencyControllerTest {
 
     @Test
     void createCurrency_success_returnsCreated() throws Exception {
+        // Arrange
         CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "EUR");
         CurrencyResponse response = new CurrencyResponse("1", "Euro", "EUR");
         when(currencyService.createCurrency(any(CreateCurrencyRequest.class))).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(post("/api/currencies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -119,10 +131,12 @@ class CurrencyControllerTest {
 
     @Test
     void createCurrency_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        // Arrange
         CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "EUR");
         when(currencyService.createCurrency(any(CreateCurrencyRequest.class)))
                 .thenThrow(new IllegalArgumentException("Currency with code already exists: EUR"));
 
+        // Act & Assert
         mockMvc.perform(post("/api/currencies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -132,16 +146,20 @@ class CurrencyControllerTest {
 
     @Test
     void deleteCurrency_success_returnsNoContent() throws Exception {
+        // Arrange
         doNothing().when(currencyService).deleteCurrency("1");
 
+        // Act & Assert
         mockMvc.perform(delete("/api/currencies/1"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void deleteCurrency_whenServiceThrowsEntityNotFound_returnsNotFound() throws Exception {
+        // Arrange
         doThrow(new EntityNotFoundException("1")).when(currencyService).deleteCurrency("1");
 
+        // Act & Assert
         mockMvc.perform(delete("/api/currencies/1"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").exists());

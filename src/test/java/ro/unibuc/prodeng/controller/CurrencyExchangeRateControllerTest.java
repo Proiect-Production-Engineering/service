@@ -48,9 +48,11 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void getAllExchangeRates_returnsMatrix() throws Exception {
+        // Arrange
         Map<String, Double> matrix = Map.of("EUR_RON", 4.5, "RON_EUR", 0.22);
         when(exchangeRateService.getAllExchangeRates()).thenReturn(matrix);
 
+        // Act & Assert
         mockMvc.perform(get("/api/exchange-rates"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.EUR_RON", equalTo(4.5)))
@@ -59,9 +61,11 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void getExchangeRate_returnsRate() throws Exception {
+        // Arrange
         ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
         when(exchangeRateService.getExchangeRate("EUR", "RON")).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(get("/api/exchange-rates/rate")
                         .param("source", "EUR")
                         .param("target", "RON"))
@@ -73,9 +77,11 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void getExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        // Arrange
         when(exchangeRateService.getExchangeRate("EUR", "RON"))
                 .thenThrow(new IllegalArgumentException("Exchange rate not found for EUR to RON"));
 
+        // Act & Assert
         mockMvc.perform(get("/api/exchange-rates/rate")
                         .param("source", "EUR")
                         .param("target", "RON"))
@@ -85,10 +91,12 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void setExchangeRate_success_returnsCreated() throws Exception {
+        // Arrange
         SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
         ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class))).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(post("/api/exchange-rates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -99,10 +107,12 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void setExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        // Arrange
         SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class)))
                 .thenThrow(new IllegalArgumentException("Unsupported currency"));
 
+        // Act & Assert
         mockMvc.perform(post("/api/exchange-rates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -112,10 +122,12 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void updateExchangeRate_success_returnsOk() throws Exception {
+        // Arrange
         SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
         ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class))).thenReturn(response);
 
+        // Act & Assert
         mockMvc.perform(put("/api/exchange-rates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -126,10 +138,12 @@ class CurrencyExchangeRateControllerTest {
 
     @Test
     void updateExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
+        // Arrange
         SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class)))
                 .thenThrow(new IllegalArgumentException("Unsupported currency"));
 
+        // Act & Assert
         mockMvc.perform(put("/api/exchange-rates")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
