@@ -331,4 +331,30 @@ class BankAccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
         verifyNoInteractions(bankAccountRepository, transactionRepository);
     }
+
+    @Test
+    void testTransfer_sourceBalanceNull_treatedAsZeroAndInsufficientFunds() {
+        // Arrange
+        BankAccountEntity source = new BankAccountEntity();
+        source.setId("acc-1");
+        source.setUserId(CURRENT_USER_ID);
+        source.setCurrencyCode("EUR");
+        source.setDeleted(false);
+
+        BankAccountEntity target = makeAccount("acc-2", "user-2", "EUR", false, 0.0);
+
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
+        when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.of(target));
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("50.00"),
+                "Null source balance"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verify(transactionRepository, never()).saveAll(any(List.class));
+    }
 }
