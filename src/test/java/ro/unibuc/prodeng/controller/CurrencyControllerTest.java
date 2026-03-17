@@ -63,4 +63,15 @@ class CurrencyControllerTest {
                 .andExpect(jsonPath("$[0].code", equalTo("EUR")))
                 .andExpect(jsonPath("$[1].code", equalTo("RON")));
     }
+
+    @Test
+    void getCurrencyById_existing_returnsCurrency() throws Exception {
+        CurrencyResponse response = new CurrencyResponse("1", "Euro", "EUR");
+        when(currencyService.getCurrencyById("1")).thenReturn(response);
+
+        mockMvc.perform(get("/api/currencies/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", equalTo("1")))
+                .andExpect(jsonPath("$.code", equalTo("EUR")));
+    }
 }
