@@ -145,4 +145,8 @@ class CurrencyExchangeRateServiceTest {
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("eur", "ron"));
     }
 
+    @Test
+    void validateCurrencies_nullSource_throwsIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate(null, "RON"));
+    }
 }
