@@ -118,4 +118,20 @@ class CurrencyExchangeRateServiceTest {
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.setExchangeRate(request));
         verify(exchangeRateRepository, never()).save(any(CurrencyExchangeRateEntity.class));
     }
+
+    @Test
+    void getExchangeRate_existingRate_returnsResponse() {
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("RON")).thenReturn(true);
+
+        CurrencyExchangeRateEntity rate = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
+        when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("EUR", "RON"))
+                .thenReturn(Optional.of(rate));
+
+        ExchangeRateResponse response = exchangeRateService.getExchangeRate("eur", "ron");
+
+        assertEquals("EUR", response.sourceCurrency());
+        assertEquals("RON", response.targetCurrency());
+        assertEquals(4.5, response.exchangeRate());
+    }
 }
