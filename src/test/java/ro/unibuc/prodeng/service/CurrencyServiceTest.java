@@ -32,4 +32,17 @@ class CurrencyServiceTest {
 
     @InjectMocks
     private CurrencyService currencyService;
+
+    @Test
+    void getAllCurrencies_returnsMappedResponses() {
+        CurrencyEntity eur = new CurrencyEntity("1", "Euro", "EUR");
+        CurrencyEntity ron = new CurrencyEntity("2", "Romanian Leu", "RON");
+        when(currencyRepository.findAll()).thenReturn(List.of(eur, ron));
+
+        List<CurrencyResponse> result = currencyService.getAllCurrencies();
+
+        assertEquals(2, result.size());
+        assertEquals("Euro", result.get(0).name());
+        assertEquals("RON", result.get(1).code());
+    }
 }
