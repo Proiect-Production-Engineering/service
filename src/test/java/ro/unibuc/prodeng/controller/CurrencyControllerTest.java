@@ -102,4 +102,18 @@ class CurrencyControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").exists());
     }
+
+    @Test
+    void createCurrency_success_returnsCreated() throws Exception {
+        CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "EUR");
+        CurrencyResponse response = new CurrencyResponse("1", "Euro", "EUR");
+        when(currencyService.createCurrency(any(CreateCurrencyRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/currencies")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", equalTo("1")))
+                .andExpect(jsonPath("$.code", equalTo("EUR")));
+    }
 }
