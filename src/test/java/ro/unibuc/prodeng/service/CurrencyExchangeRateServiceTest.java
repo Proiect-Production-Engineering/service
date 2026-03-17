@@ -159,4 +159,11 @@ class CurrencyExchangeRateServiceTest {
     void validateCurrencies_sameCurrency_throwsIllegalArgument() {
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", "eur"));
     }
+
+    @Test
+    void validateCurrencies_unknownSource_throwsIllegalArgument() {
+        when(currencyRepository.existsByCode("EUR")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", "RON"));
+    }
 }
