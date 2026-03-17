@@ -66,7 +66,7 @@ class BankAccountServiceTest {
         account.setUserId(userId);
         account.setCurrencyCode(currency);
         account.setDeleted(deleted);
-                account.setBalance(balance);
+        account.setBalance(balance);
         return account;
     }
 
