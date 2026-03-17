@@ -122,4 +122,25 @@ class BankAccountServiceTest {
 
         verify(transactionRepository, times(1)).saveAll(any(List.class));
     }
+
+    @Test
+    void testTransfer_sourceAccountNotOwnedByCurrentUser_throwsIllegalArgumentException() {
+        // Arrange
+        BankAccountEntity source = makeAccount("acc-1", "other-user", "EUR", false, 1000.0);
+        BankAccountEntity target = makeAccount("acc-2", "user-2", "EUR", false, 0.0);
+
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
+        when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.of(target));
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("100.00"),
+                "Unauthorized transfer"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verify(transactionRepository, never()).saveAll(any(List.class));
+    }
 }
