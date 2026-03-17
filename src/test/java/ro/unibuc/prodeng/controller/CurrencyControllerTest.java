@@ -137,4 +137,13 @@ class CurrencyControllerTest {
         mockMvc.perform(delete("/api/currencies/1"))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    void deleteCurrency_whenServiceThrowsEntityNotFound_returnsNotFound() throws Exception {
+        doThrow(new EntityNotFoundException("1")).when(currencyService).deleteCurrency("1");
+
+        mockMvc.perform(delete("/api/currencies/1"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").exists());
+    }
 }
