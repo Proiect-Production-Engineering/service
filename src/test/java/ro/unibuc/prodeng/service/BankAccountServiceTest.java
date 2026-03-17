@@ -121,6 +121,11 @@ class BankAccountServiceTest {
         assertEquals(new BigDecimal("200.00"), credit.amount());
 
         verify(transactionRepository, times(1)).saveAll(any(List.class));
+
+        assertEquals(800.0, source.getBalance());
+        assertEquals(200.0, target.getBalance());
+        verify(bankAccountRepository).save(source);
+        verify(bankAccountRepository).save(target);
     }
 
     @Test
