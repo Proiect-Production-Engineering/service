@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
-import ro.unibuc.prodeng.request.CreateTransactionRequest;
+import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
 import ro.unibuc.prodeng.response.BankAccountResponse;
 import ro.unibuc.prodeng.response.TransactionResponse;
@@ -127,18 +127,18 @@ public class BankAccountController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Create a transaction on an account",
-            description = "Creates a CREDIT or DEBIT transaction on the specified bank account")
+    @Operation(summary = "Transfer money between bank accounts",
+            description = "Transfers funds from a source bank account (owned by the current user) to a target bank account. Only same-currency transfers are supported.")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Transaction created successfully"),
-        @ApiResponse(responseCode = "404", description = "Account not found")
+        @ApiResponse(responseCode = "201", description = "Transfer completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request, insufficient funds, ownership or currency validation failed"),
+        @ApiResponse(responseCode = "404", description = "Source or target account not found")
     })
-    @PostMapping("/{id}/transactions")
-    public ResponseEntity<TransactionResponse> createTransaction(
-            @Parameter(description = "Bank account ID") @PathVariable String id,
-            @Valid @RequestBody CreateTransactionRequest request) {
-        TransactionResponse tx = bankAccountService.createTransaction(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(tx);
+    @PostMapping("/transfer")
+    public ResponseEntity<List<TransactionResponse>> transfer(
+            @Valid @RequestBody CreateTransferRequest request) {
+        List<TransactionResponse> transactions = bankAccountService.transfer(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactions);
     }
 
     @Operation(summary = "Get balance sheet with running balance for an account",
