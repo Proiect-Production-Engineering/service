@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
@@ -205,6 +206,23 @@ class BankAccountServiceTest {
 
         // Act & Assert
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verify(transactionRepository, never()).saveAll(any(List.class));
+    }
+
+    @Test
+    void testTransfer_sourceAccountNotFound_throwsEntityNotFoundException() {
+        // Arrange
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.empty());
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("100.00"),
+                "Missing source"
+        );
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.transfer(request));
         verify(transactionRepository, never()).saveAll(any(List.class));
     }
 }
