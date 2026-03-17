@@ -154,4 +154,9 @@ class CurrencyExchangeRateServiceTest {
     void validateCurrencies_nullTarget_throwsIllegalArgument() {
         assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", null));
     }
+
+    @Test
+    void validateCurrencies_sameCurrency_throwsIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("EUR", "eur"));
+    }
 }
