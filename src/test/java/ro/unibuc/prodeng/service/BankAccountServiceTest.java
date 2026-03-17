@@ -225,4 +225,23 @@ class BankAccountServiceTest {
         assertThrows(EntityNotFoundException.class, () -> bankAccountService.transfer(request));
         verify(transactionRepository, never()).saveAll(any(List.class));
     }
+
+    @Test
+    void testTransfer_targetAccountNotFound_throwsEntityNotFoundException() {
+        // Arrange
+        BankAccountEntity source = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 1000.0);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(source));
+        when(bankAccountRepository.findById("acc-2")).thenReturn(Optional.empty());
+
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-2",
+                new BigDecimal("100.00"),
+                "Missing target"
+        );
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.transfer(request));
+        verify(transactionRepository, never()).saveAll(any(List.class));
+    }
 }
