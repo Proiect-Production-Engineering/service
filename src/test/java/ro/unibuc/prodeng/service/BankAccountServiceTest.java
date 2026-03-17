@@ -165,4 +165,19 @@ class BankAccountServiceTest {
         assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
         verify(transactionRepository, never()).saveAll(any(List.class));
     }
+
+    @Test
+    void testTransfer_sameSourceAndTarget_throwsIllegalArgumentException() {
+        // Arrange
+        CreateTransferRequest request = new CreateTransferRequest(
+                "acc-1",
+                "acc-1",
+                new BigDecimal("100.00"),
+                "Self transfer"
+        );
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.transfer(request));
+        verifyNoInteractions(bankAccountRepository, transactionRepository);
+    }
 }
