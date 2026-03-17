@@ -1,17 +1,17 @@
 package ro.unibuc.prodeng.request;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-import java.math.BigDecimal;
+public record CreateTransferRequest(
+    @NotBlank(message = "Source account ID is required")
+    String sourceAccountId,
 
-public record CreateTransactionRequest(
-    @NotBlank(message = "Account ID is required")
-    String accountId,
-
-    @NotBlank(message = "Transaction type is required (CREDIT or DEBIT)")
-    String type,
+    @NotBlank(message = "Target account ID is required")
+    String targetAccountId,
 
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
