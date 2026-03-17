@@ -132,4 +132,15 @@ class CurrencyServiceTest {
         assertThrows(EntityNotFoundException.class, () -> currencyService.deleteCurrency("1"));
         verify(currencyRepository).existsById("1");
     }
+
+    @Test
+    void deleteCurrency_whenExisting_deletesById() {
+        when(currencyRepository.existsById("1")).thenReturn(true);
+
+        currencyService.deleteCurrency("1");
+
+        verify(currencyRepository).existsById("1");
+        verify(currencyRepository).deleteById("1");
+    }
+
 }
