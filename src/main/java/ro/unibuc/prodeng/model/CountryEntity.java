@@ -8,5 +8,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public record CountryEntity(
     @Id String id,
     String name,
-    @Indexed(unique = true) String code
+    @Indexed(unique = true) String code,
+    String ibanPattern
 ) {}
