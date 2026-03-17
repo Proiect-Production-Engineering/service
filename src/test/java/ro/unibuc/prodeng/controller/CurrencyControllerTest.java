@@ -129,4 +129,12 @@ class CurrencyControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", equalTo("Currency with code already exists: EUR")));
     }
+
+    @Test
+    void deleteCurrency_success_returnsNoContent() throws Exception {
+        doNothing().when(currencyService).deleteCurrency("1");
+
+        mockMvc.perform(delete("/api/currencies/1"))
+                .andExpect(status().isNoContent());
+    }
 }
