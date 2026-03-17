@@ -124,4 +124,12 @@ class CurrencyServiceTest {
         verify(currencyRepository).existsByCode("EUR");
         verify(currencyRepository).save(any(CurrencyEntity.class));
     }
+
+    @Test
+    void deleteCurrency_whenNotExisting_throwsEntityNotFound() {
+        when(currencyRepository.existsById("1")).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class, () -> currencyService.deleteCurrency("1"));
+        verify(currencyRepository).existsById("1");
+    }
 }
