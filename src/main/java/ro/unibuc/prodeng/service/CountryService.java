@@ -41,7 +41,7 @@ public class CountryService {
             throw new IllegalArgumentException("Country with code already exists: " + normalizedCode);
         }
 
-        CountryEntity country = new CountryEntity(null, request.name(), normalizedCode);
+        CountryEntity country = new CountryEntity(null, request.name(), normalizedCode, request.ibanPattern());
         CountryEntity saved = countryRepository.save(country);
         return toResponse(saved);
     }
@@ -53,7 +53,12 @@ public class CountryService {
         countryRepository.deleteById(id);
     }
 
+    public CountryEntity getCountryEntityByCode(String code) {
+        return countryRepository.findByCode(code.toUpperCase())
+                .orElseThrow(() -> new EntityNotFoundException(code));
+    }
+
     private CountryResponse toResponse(CountryEntity entity) {
-        return new CountryResponse(entity.id(), entity.name(), entity.code());
+        return new CountryResponse(entity.id(), entity.name(), entity.code(), entity.ibanPattern());
     }
 }
