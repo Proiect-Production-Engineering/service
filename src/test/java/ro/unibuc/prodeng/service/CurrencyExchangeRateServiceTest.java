@@ -134,4 +134,15 @@ class CurrencyExchangeRateServiceTest {
         assertEquals("RON", response.targetCurrency());
         assertEquals(4.5, response.exchangeRate());
     }
+
+    @Test
+    void getExchangeRate_missingRate_throwsIllegalArgument() {
+        when(currencyRepository.existsByCode("EUR")).thenReturn(true);
+        when(currencyRepository.existsByCode("RON")).thenReturn(true);
+        when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("EUR", "RON"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> exchangeRateService.getExchangeRate("eur", "ron"));
+    }
+
 }
