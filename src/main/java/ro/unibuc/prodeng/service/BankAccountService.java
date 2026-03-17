@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.service;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +14,15 @@ import ro.unibuc.prodeng.config.ApplicationConfig;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.CountryEntity;
+import ro.unibuc.prodeng.model.TransactionEntity;
+import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.repository.BankAccountRepository;
+import ro.unibuc.prodeng.repository.TransactionRepository;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
+import ro.unibuc.prodeng.request.CreateTransactionRequest;
 import ro.unibuc.prodeng.response.BankAccountResponse;
+import ro.unibuc.prodeng.response.TransactionResponse;
 
 @Service
 public class BankAccountService {
@@ -29,6 +35,9 @@ public class BankAccountService {
 
     @Autowired
     private CurrencyService currencyService;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
 
     @Autowired
     private IBANService ibanService;
@@ -121,6 +130,26 @@ public class BankAccountService {
         bankAccountRepository.save(account);
     }
 
+    public TransactionResponse createTransaction(CreateTransactionRequest request) {
+        getEntityById(request.accountId());
+        TransactionType type = TransactionType.valueOf(request.type().toUpperCase());
+        TransactionEntity entity = new TransactionEntity(
+                null,
+                request.accountId(),
+                type,
+                request.amount(),
+                request.description(),
+                Instant.now()
+        );
+        TransactionEntity saved = transactionRepository.save(entity);
+        return toTransactionResponse(saved);
+    }
+
+    public BankAccountEntity getEntityById(String id) {
+        return bankAccountRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(id));
+    }
+
     private String generateUniqueIBAN(String countryCode, String ibanPattern) {
         String iban;
         int maxAttempts = 10;
@@ -151,6 +180,17 @@ public class BankAccountService {
                 entity.getAccountHolderName(),
                 entity.getBalance(),
                 entity.isDeleted()
+        );
+    }
+
+    private TransactionResponse toTransactionResponse(TransactionEntity entity) {
+        return new TransactionResponse(
+                entity.id(),
+                entity.accountId(),
+                entity.type().name(),
+                entity.amount(),
+                entity.description(),
+                entity.timestamp()
         );
     }
 }

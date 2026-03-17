@@ -19,8 +19,12 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
+import ro.unibuc.prodeng.request.CreateTransactionRequest;
+import ro.unibuc.prodeng.response.BalanceSheetResponse;
 import ro.unibuc.prodeng.response.BankAccountResponse;
+import ro.unibuc.prodeng.response.TransactionResponse;
 import ro.unibuc.prodeng.service.BankAccountService;
+import ro.unibuc.prodeng.service.ReportingService;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -30,6 +34,9 @@ public class BankAccountController {
 
     @Autowired
     private BankAccountService bankAccountService;
+
+    @Autowired
+    private ReportingService reportingService;
 
     @Operation(summary = "Create a new bank account",
             description = "Creates a new bank account for the authenticated user. An IBAN is automatically generated based on the country's IBAN pattern. Max 3 accounts per user, one per currency.")
@@ -118,5 +125,32 @@ public class BankAccountController {
             @Parameter(description = "Bank account ID") @PathVariable String id) {
         bankAccountService.closeAccount(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Create a transaction on an account",
+            description = "Creates a CREDIT or DEBIT transaction on the specified bank account")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Transaction created successfully"),
+        @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @PostMapping("/{id}/transactions")
+    public ResponseEntity<TransactionResponse> createTransaction(
+            @Parameter(description = "Bank account ID") @PathVariable String id,
+            @Valid @RequestBody CreateTransactionRequest request) {
+        TransactionResponse tx = bankAccountService.createTransaction(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(tx);
+    }
+
+    @Operation(summary = "Get balance sheet with running balance for an account",
+            description = "Retrieves all transactions for the specified account with a running balance computation")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Balance sheet retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "Account not found")
+    })
+    @GetMapping("/{id}/balance-sheet")
+    public ResponseEntity<BalanceSheetResponse> getBalanceSheet(
+            @Parameter(description = "Bank account ID") @PathVariable String id) {
+        BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id);
+        return ResponseEntity.ok(balanceSheet);
     }
 }
