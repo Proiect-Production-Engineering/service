@@ -109,4 +109,19 @@ class CurrencyServiceTest {
         verify(currencyRepository).existsByCode("EUR");
         verifyNoMoreInteractions(currencyRepository);
     }
+
+    @Test
+    void createCurrency_whenNew_savesAndReturnsResponse() {
+        CreateCurrencyRequest request = new CreateCurrencyRequest("Euro", "eur");
+        when(currencyRepository.existsByCode("EUR")).thenReturn(false);
+        CurrencyEntity saved = new CurrencyEntity("1", "Euro", "EUR");
+        when(currencyRepository.save(any(CurrencyEntity.class))).thenReturn(saved);
+
+        CurrencyResponse result = currencyService.createCurrency(request);
+
+        assertEquals("1", result.id());
+        assertEquals("EUR", result.code());
+        verify(currencyRepository).existsByCode("EUR");
+        verify(currencyRepository).save(any(CurrencyEntity.class));
+    }
 }
