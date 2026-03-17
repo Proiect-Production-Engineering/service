@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ro.unibuc.prodeng.config.ApplicationConfig;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -20,7 +22,7 @@ import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.repository.BankAccountRepository;
 import ro.unibuc.prodeng.repository.TransactionRepository;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
-import ro.unibuc.prodeng.request.CreateTransactionRequest;
+import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BankAccountResponse;
 import ro.unibuc.prodeng.response.TransactionResponse;
 
@@ -130,19 +132,84 @@ public class BankAccountService {
         bankAccountRepository.save(account);
     }
 
-    public TransactionResponse createTransaction(CreateTransactionRequest request) {
-        getEntityById(request.accountId());
-        TransactionType type = TransactionType.valueOf(request.type().toUpperCase());
-        TransactionEntity entity = new TransactionEntity(
+    @Transactional
+    public List<TransactionResponse> transfer(CreateTransferRequest request) {
+        if (request.sourceAccountId().equals(request.targetAccountId())) {
+            throw new IllegalArgumentException("Source and target accounts must be different");
+        }
+
+        BigDecimal amount = request.amount();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        String currentUserId = getCurrentUserId();
+
+        BankAccountEntity sourceAccount = bankAccountRepository.findById(request.sourceAccountId())
+                .orElseThrow(() -> new EntityNotFoundException(request.sourceAccountId()));
+        BankAccountEntity targetAccount = bankAccountRepository.findById(request.targetAccountId())
+                .orElseThrow(() -> new EntityNotFoundException(request.targetAccountId()));
+
+        if (!sourceAccount.getUserId().equals(currentUserId)) {
+            throw new IllegalArgumentException("Source account does not belong to the current user");
+        }
+
+        if (sourceAccount.isDeleted()) {
+            throw new IllegalArgumentException("Source account is closed");
+        }
+
+        if (targetAccount.isDeleted()) {
+            throw new IllegalArgumentException("Target account is closed");
+        }
+
+        if (!sourceAccount.getCurrencyCode().equals(targetAccount.getCurrencyCode())) {
+            throw new IllegalArgumentException("Source and target accounts must have the same currency");
+        }
+
+        BigDecimal sourceBalance = BigDecimal.valueOf(
+            sourceAccount.getBalance() == null ? 0.0 : sourceAccount.getBalance());
+        if (sourceBalance.compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Insufficient funds in source account");
+        }
+
+        Instant now = Instant.now();
+        String description = request.description();
+
+        // Update stored balances atomically within the transaction
+        BigDecimal targetBalance = BigDecimal.valueOf(
+            targetAccount.getBalance() == null ? 0.0 : targetAccount.getBalance());
+
+        BigDecimal updatedSource = sourceBalance.subtract(amount);
+        BigDecimal updatedTarget = targetBalance.add(amount);
+
+        sourceAccount.setBalance(updatedSource.doubleValue());
+        targetAccount.setBalance(updatedTarget.doubleValue());
+
+        bankAccountRepository.save(sourceAccount);
+        bankAccountRepository.save(targetAccount);
+
+        TransactionEntity debit = new TransactionEntity(
                 null,
-                request.accountId(),
-                type,
-                request.amount(),
-                request.description(),
-                Instant.now()
+                sourceAccount.getId(),
+                TransactionType.DEBIT,
+                amount,
+                description,
+                now
         );
-        TransactionEntity saved = transactionRepository.save(entity);
-        return toTransactionResponse(saved);
+
+        TransactionEntity credit = new TransactionEntity(
+                null,
+                targetAccount.getId(),
+                TransactionType.CREDIT,
+                amount,
+                description,
+                now
+        );
+
+        List<TransactionEntity> saved = transactionRepository.saveAll(List.of(debit, credit));
+        return saved.stream()
+                .map(this::toTransactionResponse)
+                .toList();
     }
 
     public BankAccountEntity getEntityById(String id) {
