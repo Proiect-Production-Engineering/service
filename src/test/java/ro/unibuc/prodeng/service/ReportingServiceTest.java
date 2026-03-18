@@ -174,4 +174,59 @@ class ReportingServiceTest {
         assertEquals("CREDIT", entry.type());
         assertEquals(new BigDecimal("999.99"), entry.amount());
     }
+
+    @Test
+    void testGetBalanceSheet_withTimePeriod_filtersTransactions() {
+        // Arrange
+        Instant from = Instant.parse("2025-01-01T00:00:00Z");
+        Instant to = Instant.parse("2025-01-31T23:59:59Z");
+
+        TransactionEntity tx1 = new TransactionEntity("tx1", "acc1", TransactionType.CREDIT, new BigDecimal("300.00"), "January salary", Instant.parse("2025-01-15T10:00:00Z"));
+
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+        when(transactionRepository.findByAccountIdAndTimestampBetweenOrderByTimestampAsc("acc1", from, to)).thenReturn(List.of(tx1));
+
+        // Act
+        BalanceSheetResponse result = reportingService.getBalanceSheet("acc1", from, to);
+
+        // Assert
+        assertEquals(1, result.entries().size());
+        assertEquals(new BigDecimal("300.00"), result.currentBalance());
+        verify(transactionRepository).findByAccountIdAndTimestampBetweenOrderByTimestampAsc("acc1", from, to);
+        verify(transactionRepository, never()).findByAccountIdOrderByTimestampAsc(anyString());
+    }
+
+    @Test
+    void testGetBalanceSheet_withNullTimePeriod_returnsAllTransactions() {
+        // Arrange
+        TransactionEntity tx = new TransactionEntity("tx1", "acc1", TransactionType.CREDIT, new BigDecimal("100.00"), "Deposit", Instant.now());
+
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+        when(transactionRepository.findByAccountIdOrderByTimestampAsc("acc1")).thenReturn(List.of(tx));
+
+        // Act
+        BalanceSheetResponse result = reportingService.getBalanceSheet("acc1", null, null);
+
+        // Assert
+        assertEquals(1, result.entries().size());
+        verify(transactionRepository).findByAccountIdOrderByTimestampAsc("acc1");
+        verify(transactionRepository, never()).findByAccountIdAndTimestampBetweenOrderByTimestampAsc(anyString(), any(), any());
+    }
+
+    @Test
+    void testGetBalanceSheet_withTimePeriod_noMatchingTransactions_returnsZeroBalance() {
+        // Arrange
+        Instant from = Instant.parse("2025-06-01T00:00:00Z");
+        Instant to = Instant.parse("2025-06-30T23:59:59Z");
+
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+        when(transactionRepository.findByAccountIdAndTimestampBetweenOrderByTimestampAsc("acc1", from, to)).thenReturn(Collections.emptyList());
+
+        // Act
+        BalanceSheetResponse result = reportingService.getBalanceSheet("acc1", from, to);
+
+        // Assert
+        assertEquals(BigDecimal.ZERO, result.currentBalance());
+        assertTrue(result.entries().isEmpty());
+    }
 }

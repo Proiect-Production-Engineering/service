@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.controller;
 
+import java.time.Instant;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -142,15 +143,17 @@ public class BankAccountController {
     }
 
     @Operation(summary = "Get balance sheet with running balance for an account",
-            description = "Retrieves all transactions for the specified account with a running balance computation")
+            description = "Retrieves transactions for the specified account with a running balance computation. Optionally filter by time period.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Balance sheet retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "Account not found")
     })
     @GetMapping("/{id}/balance-sheet")
     public ResponseEntity<BalanceSheetResponse> getBalanceSheet(
-            @Parameter(description = "Bank account ID") @PathVariable String id) {
-        BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id);
+            @Parameter(description = "Bank account ID") @PathVariable String id,
+            @Parameter(description = "Start of time period (ISO-8601)") @RequestParam(required = false) Instant from,
+            @Parameter(description = "End of time period (ISO-8601)") @RequestParam(required = false) Instant to) {
+        BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id, from, to);
         return ResponseEntity.ok(balanceSheet);
     }
 }

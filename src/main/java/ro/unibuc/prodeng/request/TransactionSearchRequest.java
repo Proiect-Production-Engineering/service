@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.request;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public record TransactionSearchRequest(
@@ -7,5 +8,10 @@ public record TransactionSearchRequest(
     String type,
     String descriptionKeyword,
     Instant from,
-    Instant to
+    Instant to,
+    String iban,
+    BigDecimal minAmount,
+    BigDecimal maxAmount,
+    Integer page,
+    Integer size
 ) {}
