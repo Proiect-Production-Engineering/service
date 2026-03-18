@@ -45,7 +45,7 @@ var adminUser = db.users.findOne({ username: "admin" });
 if (adminUser) {
     var adminId = adminUser._id.toString();
     if (!db.bank_accounts.findOne({ iban: "RO83OPPCo1JNAQ8eEheih5zI" })) {
-        db.bank_accounts.insertOne({
+        var accountInsertResult = db.bank_accounts.insertOne({
             iban: "RO83OPPCo1JNAQ8eEheih5zI",
             userId: adminId,
             currencyCode: "EUR",
@@ -54,7 +54,15 @@ if (adminUser) {
             balance: 1000000.0,
             deleted: false
         });
-        print("Admin bank account created with 1,000,000 EUR (userId: " + adminId + ").");
+        var adminAccountId = accountInsertResult.insertedId.toString();
+        db.transactions.insertOne({
+            accountId: adminAccountId,
+            type: "CREDIT",
+            amount: NumberDecimal("1000000.00"),
+            description: "Initial seed balance",
+            timestamp: new Date()
+        });
+        print("Admin bank account created with 1,000,000 EUR and initial CREDIT transaction (userId: " + adminId + ").");
     } else {
         print("Admin bank account already exists, skipping.");
     }
