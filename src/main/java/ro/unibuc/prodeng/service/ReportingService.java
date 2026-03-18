@@ -1,6 +1,7 @@
 package ro.unibuc.prodeng.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,8 +25,19 @@ public class ReportingService {
     private BankAccountService bankAccountService;
 
     public BalanceSheetResponse getBalanceSheet(String accountId) {
+        return getBalanceSheet(accountId, null, null);
+    }
+
+    public BalanceSheetResponse getBalanceSheet(String accountId, Instant from, Instant to) {
         BankAccountEntity account = bankAccountService.getEntityById(accountId);
-        List<TransactionEntity> transactions = transactionRepository.findByAccountIdOrderByTimestampAsc(accountId);
+
+        List<TransactionEntity> transactions;
+        if (from != null && to != null) {
+            transactions = transactionRepository.findByAccountIdAndTimestampBetweenOrderByTimestampAsc(accountId, from, to);
+        } else {
+            transactions = transactionRepository.findByAccountIdOrderByTimestampAsc(accountId);
+        }
+
         List<BalanceSheetEntry> entries = computeRunningBalance(transactions);
 
         BigDecimal currentBalance = entries.isEmpty()
