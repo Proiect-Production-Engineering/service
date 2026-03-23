@@ -2,14 +2,20 @@ package ro.unibuc.prodeng.service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,16 +23,20 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
+import ro.unibuc.prodeng.model.CountryEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.repository.BankAccountRepository;
 import ro.unibuc.prodeng.repository.TransactionRepository;
+import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
+import ro.unibuc.prodeng.response.BankAccountResponse;
 import ro.unibuc.prodeng.response.TransactionResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -38,6 +48,15 @@ class BankAccountServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
+    private CountryService countryService;
+
+    @Mock
+    private CurrencyService currencyService;
+
+    @Mock
+    private IBANService ibanService;
 
     @InjectMocks
     private BankAccountService bankAccountService;
@@ -59,6 +78,11 @@ class BankAccountServiceTest {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
         private BankAccountEntity makeAccount(String id, String userId, String currency, boolean deleted, double balance) {
@@ -401,5 +425,319 @@ class BankAccountServiceTest {
         verify(bankAccountRepository).save(source);
         verify(bankAccountRepository).save(target);
         verify(transactionRepository).saveAll(any(List.class));
+    }
+
+    // ========================
+    // createAccount tests
+    // ========================
+
+    @Test
+    void testCreateAccount_validRequest_createsAndReturnsAccount() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("eur", "ro", "John Doe");
+        when(currencyService.existsByCode("EUR")).thenReturn(true);
+        when(countryService.getCountryEntityByCode("ro"))
+                .thenReturn(new CountryEntity("c1", "Romania", "RO", "aaaacccccccccccccccc"));
+        when(bankAccountRepository.countByUserIdAndDeletedFalse(CURRENT_USER_ID)).thenReturn(0L);
+        when(bankAccountRepository.existsByUserIdAndCurrencyCodeAndDeletedFalse(CURRENT_USER_ID, "EUR")).thenReturn(false);
+        when(ibanService.generateIBAN("RO", "aaaacccccccccccccccc")).thenReturn("RO49AAAA1234567890123456");
+        when(bankAccountRepository.existsByIban("RO49AAAA1234567890123456")).thenReturn(false);
+        when(bankAccountRepository.save(any(BankAccountEntity.class))).thenAnswer(invocation -> {
+            BankAccountEntity entity = invocation.getArgument(0);
+            entity.setId("acc-gen");
+            return entity;
+        });
+
+        // Act
+        BankAccountResponse result = bankAccountService.createAccount(request);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("acc-gen", result.id());
+        assertEquals("RO49AAAA1234567890123456", result.iban());
+        assertEquals("EUR", result.currencyCode());
+        assertEquals("John Doe", result.accountHolderName());
+        assertEquals(0.0, result.balance());
+        assertFalse(result.deleted());
+    }
+
+    @Test
+    void testCreateAccount_unsupportedCurrency_throwsIllegalArgumentException() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("xyz", "ro", "John Doe");
+        when(currencyService.existsByCode("XYZ")).thenReturn(false);
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> bankAccountService.createAccount(request));
+        assertTrue(ex.getMessage().contains("Unsupported currency"));
+    }
+
+    @Test
+    void testCreateAccount_countryWithoutIbanPattern_throwsIllegalArgumentException() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("eur", "xx", "John Doe");
+        when(currencyService.existsByCode("EUR")).thenReturn(true);
+        when(countryService.getCountryEntityByCode("xx"))
+                .thenReturn(new CountryEntity("c1", "Unknown", "XX", null));
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.createAccount(request));
+    }
+
+    @Test
+    void testCreateAccount_blankIbanPattern_throwsIllegalArgumentException() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("eur", "xx", "John Doe");
+        when(currencyService.existsByCode("EUR")).thenReturn(true);
+        when(countryService.getCountryEntityByCode("xx"))
+                .thenReturn(new CountryEntity("c1", "Unknown", "XX", "   "));
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> bankAccountService.createAccount(request));
+    }
+
+    @Test
+    void testCreateAccount_maxAccountsReached_throwsIllegalArgumentException() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("eur", "ro", "John Doe");
+        when(currencyService.existsByCode("EUR")).thenReturn(true);
+        when(countryService.getCountryEntityByCode("ro"))
+                .thenReturn(new CountryEntity("c1", "Romania", "RO", "aaaacccccccccccccccc"));
+        when(bankAccountRepository.countByUserIdAndDeletedFalse(CURRENT_USER_ID)).thenReturn(3L);
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> bankAccountService.createAccount(request));
+        assertTrue(ex.getMessage().contains("Maximum number of accounts"));
+    }
+
+    @Test
+    void testCreateAccount_duplicateCurrency_throwsIllegalArgumentException() {
+        // Arrange
+        CreateBankAccountRequest request = new CreateBankAccountRequest("eur", "ro", "John Doe");
+        when(currencyService.existsByCode("EUR")).thenReturn(true);
+        when(countryService.getCountryEntityByCode("ro"))
+                .thenReturn(new CountryEntity("c1", "Romania", "RO", "aaaacccccccccccccccc"));
+        when(bankAccountRepository.countByUserIdAndDeletedFalse(CURRENT_USER_ID)).thenReturn(1L);
+        when(bankAccountRepository.existsByUserIdAndCurrencyCodeAndDeletedFalse(CURRENT_USER_ID, "EUR")).thenReturn(true);
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> bankAccountService.createAccount(request));
+        assertTrue(ex.getMessage().contains("already have an active account"));
+    }
+
+    // ========================
+    // getMyAccounts tests
+    // ========================
+
+    @Test
+    void testGetMyAccounts_withAccounts_returnsCurrentUserAccounts() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        acc.setIban("RO49AAAA");
+        acc.setCountryCode("RO");
+        acc.setAccountHolderName("John");
+        when(bankAccountRepository.findByUserIdAndDeletedFalse(CURRENT_USER_ID)).thenReturn(List.of(acc));
+
+        // Act
+        List<BankAccountResponse> result = bankAccountService.getMyAccounts();
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("acc-1", result.get(0).id());
+    }
+
+    @Test
+    void testGetMyAccounts_noAccounts_returnsEmptyList() {
+        // Arrange
+        when(bankAccountRepository.findByUserIdAndDeletedFalse(CURRENT_USER_ID)).thenReturn(Collections.emptyList());
+
+        // Act
+        List<BankAccountResponse> result = bankAccountService.getMyAccounts();
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    // ========================
+    // getAccountById tests
+    // ========================
+
+    @Test
+    void testGetAccountById_existingAccount_returnsAccount() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 500.0);
+        acc.setIban("RO49AAAA");
+        acc.setCountryCode("RO");
+        acc.setAccountHolderName("John");
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act
+        BankAccountResponse result = bankAccountService.getAccountById("acc-1");
+
+        // Assert
+        assertEquals("acc-1", result.id());
+        assertEquals(500.0, result.balance());
+    }
+
+    @Test
+    void testGetAccountById_nonExisting_throwsEntityNotFoundException() {
+        // Arrange
+        when(bankAccountRepository.findById("999")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.getAccountById("999"));
+    }
+
+    // ========================
+    // getAccountByIban tests
+    // ========================
+
+    @Test
+    void testGetAccountByIban_existingIban_returnsAccount() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 300.0);
+        acc.setIban("RO49AAAA");
+        acc.setCountryCode("RO");
+        acc.setAccountHolderName("John");
+        when(bankAccountRepository.findByIban("RO49AAAA")).thenReturn(Optional.of(acc));
+
+        // Act
+        BankAccountResponse result = bankAccountService.getAccountByIban("RO49AAAA");
+
+        // Assert
+        assertEquals("RO49AAAA", result.iban());
+    }
+
+    @Test
+    void testGetAccountByIban_nonExistingIban_throwsEntityNotFoundException() {
+        // Arrange
+        when(bankAccountRepository.findByIban("INVALID")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.getAccountByIban("INVALID"));
+    }
+
+    // ========================
+    // getAllAccounts tests
+    // ========================
+
+    @Test
+    void testGetAllAccounts_withPagination_returnsPage() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        acc.setIban("RO49AAAA");
+        acc.setCountryCode("RO");
+        acc.setAccountHolderName("John");
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<BankAccountEntity> page = new PageImpl<>(List.of(acc), pageable, 1);
+        when(bankAccountRepository.findByDeletedFalse(pageable)).thenReturn(page);
+
+        // Act
+        Page<BankAccountResponse> result = bankAccountService.getAllAccounts(pageable);
+
+        // Assert
+        assertEquals(1, result.getTotalElements());
+        assertEquals("acc-1", result.getContent().get(0).id());
+    }
+
+    // ========================
+    // getAccountsByUserId tests
+    // ========================
+
+    @Test
+    void testGetAccountsByUserId_withAccounts_returnsList() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", "user-x", "EUR", false, 200.0);
+        acc.setIban("RO49AAAA");
+        acc.setCountryCode("RO");
+        acc.setAccountHolderName("Jane");
+        when(bankAccountRepository.findByUserId("user-x")).thenReturn(List.of(acc));
+
+        // Act
+        List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("user-x", result.get(0).userId());
+    }
+
+    @Test
+    void testGetAccountsByUserId_noAccounts_returnsEmptyList() {
+        // Arrange
+        when(bankAccountRepository.findByUserId("user-x")).thenReturn(Collections.emptyList());
+
+        // Act
+        List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
+
+        // Assert
+        assertTrue(result.isEmpty());
+    }
+
+    // ========================
+    // closeAccount tests
+    // ========================
+
+    @Test
+    void testCloseAccount_activeAccount_marksAsDeleted() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act
+        bankAccountService.closeAccount("acc-1");
+
+        // Assert
+        assertTrue(acc.isDeleted());
+        verify(bankAccountRepository).save(acc);
+    }
+
+    @Test
+    void testCloseAccount_alreadyClosed_throwsIllegalArgumentException() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", true, 0.0);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> bankAccountService.closeAccount("acc-1"));
+        assertEquals("Account is already closed", ex.getMessage());
+    }
+
+    @Test
+    void testCloseAccount_nonExisting_throwsEntityNotFoundException() {
+        // Arrange
+        when(bankAccountRepository.findById("999")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.closeAccount("999"));
+    }
+
+    // ========================
+    // getEntityById tests
+    // ========================
+
+    @Test
+    void testGetEntityById_existingId_returnsEntity() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act
+        BankAccountEntity result = bankAccountService.getEntityById("acc-1");
+
+        // Assert
+        assertEquals("acc-1", result.getId());
+    }
+
+    @Test
+    void testGetEntityById_nonExisting_throwsEntityNotFoundException() {
+        // Arrange
+        when(bankAccountRepository.findById("999")).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(EntityNotFoundException.class, () -> bankAccountService.getEntityById("999"));
     }
 }
