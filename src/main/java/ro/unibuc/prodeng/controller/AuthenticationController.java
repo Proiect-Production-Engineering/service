@@ -3,7 +3,7 @@ package ro.unibuc.prodeng.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,9 +17,10 @@ import ro.unibuc.prodeng.service.AuthenticationService;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication")
+@RequiredArgsConstructor
 public class AuthenticationController {
-    @Autowired
-    private AuthenticationService authenticationService;
+
+    private final AuthenticationService authenticationService;
 
     @PostMapping("/signin")
     @Operation(summary = "Authenticate and receive a JWT token")

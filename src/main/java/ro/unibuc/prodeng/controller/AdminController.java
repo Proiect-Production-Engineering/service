@@ -3,7 +3,7 @@ package ro.unibuc.prodeng.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,10 +20,10 @@ import ro.unibuc.prodeng.service.AdminService;
 @Tag(name = "Admin")
 @SecurityRequirement(name = "Authentication")
 @PreAuthorize("hasRole('ADMIN')")
+@RequiredArgsConstructor
 public class AdminController {
 
-    @Autowired
-    private AdminService adminService;
+    private final AdminService adminService;
 
     @PostMapping("/transactions/search")
     @Operation(summary = "Search transactions globally with filters, pagination (admin only)")

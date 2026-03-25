@@ -2,7 +2,7 @@ package ro.unibuc.prodeng.service;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -12,10 +12,10 @@ import ro.unibuc.prodeng.request.CreateCountryRequest;
 import ro.unibuc.prodeng.response.CountryResponse;
 
 @Service
+@RequiredArgsConstructor
 public class CountryService {
 
-    @Autowired
-    private CountryRepository countryRepository;
+    private final CountryRepository countryRepository;
 
     public List<CountryResponse> getAllCountries() {
         return countryRepository.findAll().stream()
