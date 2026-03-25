@@ -1,6 +1,6 @@
 package ro.unibuc.prodeng.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,21 +16,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ro.unibuc.prodeng.security.jwt.AuthenticationEntryPointJwt;
 import ro.unibuc.prodeng.security.jwt.AuthenticationTokenFilter;
+import ro.unibuc.prodeng.security.jwt.RateLimitFilter;
 import ro.unibuc.prodeng.service.UserDetailsServiceImplementation;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class WebSecurityConfig {
-    @Autowired
-    UserDetailsServiceImplementation userDetailsService;
 
-    @Autowired
-    private AuthenticationEntryPointJwt unauthorizedHandler;
-
-    @Bean
-    public AuthenticationTokenFilter authenticationJwtTokenFilter() {
-        return new AuthenticationTokenFilter();
-    }
+    private final UserDetailsServiceImplementation userDetailsService;
+    private final AuthenticationEntryPointJwt unauthorizedHandler;
+    private final AuthenticationTokenFilter authenticationTokenFilter;
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -66,7 +62,13 @@ public class WebSecurityConfig {
                 );
 
         http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(rateLimitFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public RateLimitFilter rateLimitFilter() {
+        return new RateLimitFilter();
     }
 }

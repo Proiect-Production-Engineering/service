@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.controller;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,7 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,16 +24,16 @@ import ro.unibuc.prodeng.service.CurrencyExchangeRateService;
 @RequestMapping("/api/exchange-rates")
 @Tag(name = "Exchange Rates", description = "Currency exchange rate management endpoints")
 @SecurityRequirement(name = "Authentication")
+@RequiredArgsConstructor
 public class CurrencyExchangeRateController {
 
-    @Autowired
-    private CurrencyExchangeRateService exchangeRateService;
+    private final CurrencyExchangeRateService exchangeRateService;
 
     @Operation(summary = "Get all exchange rates", description = "Returns the full exchange rate matrix as a map of currency pair keys to rates")
     @ApiResponse(responseCode = "200", description = "Exchange rates retrieved successfully")
     @GetMapping
-    public ResponseEntity<Map<String, Double>> getAllExchangeRates() {
-        Map<String, Double> exchangeMatrix = exchangeRateService.getAllExchangeRates();
+    public ResponseEntity<Map<String, BigDecimal>> getAllExchangeRates() {
+        Map<String, BigDecimal> exchangeMatrix = exchangeRateService.getAllExchangeRates();
         return ResponseEntity.ok(exchangeMatrix);
     }
 

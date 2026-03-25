@@ -2,7 +2,7 @@ package ro.unibuc.prodeng.service;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -12,10 +12,10 @@ import ro.unibuc.prodeng.request.CreateCurrencyRequest;
 import ro.unibuc.prodeng.response.CurrencyResponse;
 
 @Service
+@RequiredArgsConstructor
 public class CurrencyService {
 
-    @Autowired
-    private CurrencyRepository currencyRepository;
+    private final CurrencyRepository currencyRepository;
 
     public List<CurrencyResponse> getAllCurrencies() {
         return currencyRepository.findAll().stream()

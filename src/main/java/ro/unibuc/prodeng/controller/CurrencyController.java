@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,10 +23,10 @@ import ro.unibuc.prodeng.service.CurrencyService;
 @RequestMapping("/api/currencies")
 @Tag(name = "Currencies", description = "Currency management endpoints")
 @SecurityRequirement(name = "Authentication")
+@RequiredArgsConstructor
 public class CurrencyController {
 
-    @Autowired
-    private CurrencyService currencyService;
+    private final CurrencyService currencyService;
 
     @Operation(summary = "Get all currencies", description = "Retrieves a list of all registered currencies")
     @ApiResponse(responseCode = "200", description = "Currencies retrieved successfully")

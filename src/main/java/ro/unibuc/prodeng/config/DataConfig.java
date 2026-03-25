@@ -1,7 +1,7 @@
 package ro.unibuc.prodeng.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,11 +16,17 @@ import java.util.List;
 @Slf4j
 @Component
 public class DataConfig implements ApplicationRunner {
-    @Autowired
-    UserRepository userRepository;
 
-    @Autowired
-    PasswordEncoder encoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder encoder;
+    private final String adminPassword;
+
+    public DataConfig(UserRepository userRepository, PasswordEncoder encoder,
+                      @Value("${prodeng.adminPassword}") String adminPassword) {
+        this.userRepository = userRepository;
+        this.encoder = encoder;
+        this.adminPassword = adminPassword;
+    }
 
     @Override
     public void run(ApplicationArguments args) {
@@ -29,7 +35,7 @@ public class DataConfig implements ApplicationRunner {
                     .username("admin")
                     .name("Admin")
                     .email("admin@email.com")
-                    .password(encoder.encode("admin"))
+                    .password(encoder.encode(adminPassword))
                     .roles(new ArrayList<>(List.of(
                             new RoleEntity("ROLE_USER"),
                             new RoleEntity("ROLE_ADMIN")
