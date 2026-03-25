@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,23 +41,23 @@ class CurrencyExchangeRateServiceTest {
     @Test
     void getAllExchangeRates_returnsExchangeMatrix() {
         // Arrange
-        CurrencyExchangeRateEntity eurRon = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
-        CurrencyExchangeRateEntity ronEur = new CurrencyExchangeRateEntity("2", "RON", "EUR", 0.22);
+        CurrencyExchangeRateEntity eurRon = new CurrencyExchangeRateEntity("1", "EUR", "RON", new BigDecimal("4.5"));
+        CurrencyExchangeRateEntity ronEur = new CurrencyExchangeRateEntity("2", "RON", "EUR", new BigDecimal("0.22"));
         when(exchangeRateRepository.findAll()).thenReturn(List.of(eurRon, ronEur));
 
         // Act
-        Map<String, Double> result = exchangeRateService.getAllExchangeRates();
+        Map<String, BigDecimal> result = exchangeRateService.getAllExchangeRates();
 
         // Assert
         assertEquals(2, result.size());
-        assertEquals(4.5, result.get("EUR_RON"));
-        assertEquals(0.22, result.get("RON_EUR"));
+        assertEquals(0, new BigDecimal("4.5").compareTo(result.get("EUR_RON")));
+        assertEquals(0, new BigDecimal("0.22").compareTo(result.get("RON_EUR")));
     }
 
     @Test
     void setExchangeRate_newPair_createsForwardAndInverse() {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("eur", "ron", 4.5);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("eur", "ron", new BigDecimal("4.5"));
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
         when(currencyRepository.existsByCode("RON")).thenReturn(true);
         when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency(anyString(), anyString()))
@@ -70,18 +71,18 @@ class CurrencyExchangeRateServiceTest {
         // Assert
         assertEquals("EUR", response.sourceCurrency());
         assertEquals("RON", response.targetCurrency());
-        assertEquals(4.5, response.exchangeRate());
+        assertEquals(0, new BigDecimal("4.5").compareTo(response.exchangeRate()));
         verify(exchangeRateRepository, times(2)).save(any(CurrencyExchangeRateEntity.class));
     }
 
     @Test
     void setExchangeRate_existingPair_updatesForwardAndInverse() {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 5.0);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("5.0"));
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
         when(currencyRepository.existsByCode("RON")).thenReturn(true);
 
-        CurrencyExchangeRateEntity existing = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
+        CurrencyExchangeRateEntity existing = new CurrencyExchangeRateEntity("1", "EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("EUR", "RON"))
                 .thenReturn(Optional.of(existing));
         when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("RON", "EUR"))
@@ -113,7 +114,7 @@ class CurrencyExchangeRateServiceTest {
     @Test
     void setExchangeRate_rateTooLow_throwsIllegalArgument() {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 0.00001);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("0.00001"));
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
         when(currencyRepository.existsByCode("RON")).thenReturn(true);
 
@@ -125,7 +126,7 @@ class CurrencyExchangeRateServiceTest {
     @Test
     void setExchangeRate_rateTooHigh_throwsIllegalArgument() {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 20000.0);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("20000.0"));
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
         when(currencyRepository.existsByCode("RON")).thenReturn(true);
 
@@ -140,7 +141,7 @@ class CurrencyExchangeRateServiceTest {
         when(currencyRepository.existsByCode("EUR")).thenReturn(true);
         when(currencyRepository.existsByCode("RON")).thenReturn(true);
 
-        CurrencyExchangeRateEntity rate = new CurrencyExchangeRateEntity("1", "EUR", "RON", 4.5);
+        CurrencyExchangeRateEntity rate = new CurrencyExchangeRateEntity("1", "EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateRepository.findBySourceCurrencyAndTargetCurrency("EUR", "RON"))
                 .thenReturn(Optional.of(rate));
 
@@ -150,7 +151,7 @@ class CurrencyExchangeRateServiceTest {
         // Assert
         assertEquals("EUR", response.sourceCurrency());
         assertEquals("RON", response.targetCurrency());
-        assertEquals(4.5, response.exchangeRate());
+        assertEquals(0, new BigDecimal("4.5").compareTo(response.exchangeRate()));
     }
 
     @Test

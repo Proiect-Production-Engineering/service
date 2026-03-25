@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,7 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void getAllExchangeRates_returnsMatrix() throws Exception {
         // Arrange
-        Map<String, Double> matrix = Map.of("EUR_RON", 4.5, "RON_EUR", 0.22);
+        Map<String, BigDecimal> matrix = Map.of("EUR_RON", new BigDecimal("4.5"), "RON_EUR", new BigDecimal("0.22"));
         when(exchangeRateService.getAllExchangeRates()).thenReturn(matrix);
 
         // Act & Assert
@@ -62,7 +63,7 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void getExchangeRate_returnsRate() throws Exception {
         // Arrange
-        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
+        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateService.getExchangeRate("EUR", "RON")).thenReturn(response);
 
         // Act & Assert
@@ -92,8 +93,8 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void setExchangeRate_success_returnsCreated() throws Exception {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
-        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("4.5"));
+        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class))).thenReturn(response);
 
         // Act & Assert
@@ -108,7 +109,7 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void setExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class)))
                 .thenThrow(new IllegalArgumentException("Unsupported currency"));
 
@@ -123,8 +124,8 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void updateExchangeRate_success_returnsOk() throws Exception {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
-        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", 4.5);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("4.5"));
+        ExchangeRateResponse response = new ExchangeRateResponse("1", "EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class))).thenReturn(response);
 
         // Act & Assert
@@ -139,7 +140,7 @@ class CurrencyExchangeRateControllerTest {
     @Test
     void updateExchangeRate_whenServiceThrowsIllegalArgument_returnsBadRequest() throws Exception {
         // Arrange
-        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", 4.5);
+        SetExchangeRateRequest request = new SetExchangeRateRequest("EUR", "RON", new BigDecimal("4.5"));
         when(exchangeRateService.setExchangeRate(any(SetExchangeRateRequest.class)))
                 .thenThrow(new IllegalArgumentException("Unsupported currency"));
 

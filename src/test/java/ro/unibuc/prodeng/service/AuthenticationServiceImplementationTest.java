@@ -51,7 +51,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignInUser_validCredentials_returnsJwtToken() {
         // Arrange
-        SignInRequest request = SignInRequest.builder().username("alice").password("password123").build();
+        SignInRequest request = new SignInRequest("alice", "password123");
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -69,7 +69,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignInUser_setsSecurityContext() {
         // Arrange
-        SignInRequest request = SignInRequest.builder().username("alice").password("password123").build();
+        SignInRequest request = new SignInRequest("alice", "password123");
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
         when(jwtUtilities.generateJwtToken(any())).thenReturn("token");
@@ -86,11 +86,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_validRequest_savesUserAndReturnsToken() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(userRepository.existsByUsername("alice")).thenReturn(false);
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
         when(encoder.encode("password123")).thenReturn("encoded-password");
@@ -116,11 +112,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_reservedAdminUsername_throwsIllegalArgumentException() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("admin")
-                .email("admin@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("admin", "admin@example.com", "password123");
 
         // Act & Assert
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -132,11 +124,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_duplicateUsername_throwsIllegalArgumentException() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(userRepository.existsByUsername("alice")).thenReturn(true);
 
         // Act & Assert
@@ -149,11 +137,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_duplicateEmail_throwsIllegalArgumentException() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("bob")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("bob", "alice@example.com", "password123");
         when(userRepository.existsByUsername("bob")).thenReturn(false);
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(true);
 
@@ -167,11 +151,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_assignsUserRole() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(encoder.encode(anyString())).thenReturn("encoded");
@@ -198,11 +178,7 @@ class AuthenticationServiceImplementationTest {
     @Test
     void testSignUpUser_afterSaving_callsSignInWithCorrectCredentials() {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(encoder.encode(anyString())).thenReturn("encoded");

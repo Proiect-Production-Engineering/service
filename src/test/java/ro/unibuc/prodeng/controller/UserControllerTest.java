@@ -207,57 +207,6 @@ class UserControllerTest {
         verify(userService, times(1)).getCurrentUser();
     }
 
-    // --- PATCH /api/users/{id}/name ---
-
-    @Test
-    void testChangeName_existingUser_returnsUpdatedUser() throws Exception {
-        // Arrange
-        String userId = "1";
-        UserResponse updatedUser = new UserResponse("1", "john", "John Updated", "john@example.com", List.of("ROLE_USER"));
-        when(userService.changeName(eq(userId), eq("John Updated"))).thenReturn(updatedUser);
-
-        // Act & Assert
-        mockMvc.perform(patch("/api/users/{id}/name", userId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeNameRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is("1")))
-                .andExpect(jsonPath("$.name", is("John Updated")));
-
-        verify(userService, times(1)).changeName(userId, "John Updated");
-    }
-
-    @Test
-    void testChangeName_nonExistingUser_returnsNotFound() throws Exception {
-        // Arrange
-        String userId = "999";
-        when(userService.changeName(eq(userId), anyString()))
-                .thenThrow(new EntityNotFoundException("User"));
-
-        // Act & Assert
-        mockMvc.perform(patch("/api/users/{id}/name", userId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeNameRequest)))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).changeName(eq(userId), anyString());
-    }
-
-    @Test
-    void testChangeName_adminUser_returnsBadRequest() throws Exception {
-        // Arrange
-        String userId = "1";
-        when(userService.changeName(eq(userId), anyString()))
-                .thenThrow(new IllegalArgumentException("The default administrator account cannot be altered."));
-
-        // Act & Assert
-        mockMvc.perform(patch("/api/users/{id}/name", userId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeNameRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error", is("The default administrator account cannot be altered.")));
-    }
-
     // --- DELETE /api/users/{id} ---
 
     @Test

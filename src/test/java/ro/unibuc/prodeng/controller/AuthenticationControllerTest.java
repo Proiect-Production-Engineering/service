@@ -45,7 +45,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignIn_validCredentials_returnsOkWithToken() throws Exception {
         // Arrange
-        SignInRequest request = SignInRequest.builder().username("alice").password("password123").build();
+        SignInRequest request = new SignInRequest("alice", "password123");
         when(authenticationService.signInUser(any(SignInRequest.class))).thenReturn("jwt-token-123");
 
         // Act & Assert
@@ -61,7 +61,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignIn_invalidCredentials_serviceThrowsException() throws Exception {
         // Arrange
-        SignInRequest request = SignInRequest.builder().username("alice").password("wrong").build();
+        SignInRequest request = new SignInRequest("alice", "wrong");
         when(authenticationService.signInUser(any(SignInRequest.class)))
                 .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
@@ -78,11 +78,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignUp_validRequest_returnsOkWithToken() throws Exception {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(authenticationService.signUpUser(any(SignUpRequest.class))).thenReturn("jwt-token-456");
 
         // Act & Assert
@@ -98,11 +94,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignUp_duplicateUsername_returnsBadRequest() throws Exception {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("alice")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("alice", "alice@example.com", "password123");
         when(authenticationService.signUpUser(any(SignUpRequest.class)))
                 .thenThrow(new IllegalArgumentException("Username already exists: alice"));
 
@@ -117,11 +109,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignUp_duplicateEmail_returnsBadRequest() throws Exception {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("bob")
-                .email("alice@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("bob", "alice@example.com", "password123");
         when(authenticationService.signUpUser(any(SignUpRequest.class)))
                 .thenThrow(new IllegalArgumentException("Email already exists: alice@example.com"));
 
@@ -136,11 +124,7 @@ class AuthenticationControllerTest {
     @Test
     void testSignUp_reservedAdminUsername_returnsBadRequest() throws Exception {
         // Arrange
-        SignUpRequest request = SignUpRequest.builder()
-                .username("admin")
-                .email("admin@example.com")
-                .password("password123")
-                .build();
+        SignUpRequest request = new SignUpRequest("admin", "admin@example.com", "password123");
         when(authenticationService.signUpUser(any(SignUpRequest.class)))
                 .thenThrow(new IllegalArgumentException("Username 'admin' is reserved."));
 

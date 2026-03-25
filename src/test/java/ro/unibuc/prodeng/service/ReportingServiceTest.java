@@ -41,7 +41,7 @@ class ReportingServiceTest {
             .currencyCode("RON")
             .countryCode("RO")
             .accountHolderName("Main Account")
-            .balance(0.0)
+            .balance(BigDecimal.ZERO)
             .deleted(false)
             .build();
 

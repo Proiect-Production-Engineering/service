@@ -2,6 +2,7 @@ package ro.unibuc.prodeng.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,11 +12,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.exception.GlobalExceptionHandler;
+import ro.unibuc.prodeng.model.BankAccountEntity;
+import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
@@ -53,9 +59,9 @@ class BankAccountControllerTest {
     private ObjectMapper objectMapper;
 
     private final BankAccountResponse testAccount1 = new BankAccountResponse(
-            "acc-1", "RO49AAAA1234567890123456", "user-1", "EUR", "RO", "John Doe", 1000.0, false);
+            "acc-1", "RO49AAAA1234567890123456", "user-1", "EUR", "RO", "John Doe", new BigDecimal("1000.0"), false);
     private final BankAccountResponse testAccount2 = new BankAccountResponse(
-            "acc-2", "GB29NWBK60161331926819", "user-2", "GBP", "GB", "Jane Smith", 500.0, false);
+            "acc-2", "GB29NWBK60161331926819", "user-2", "GBP", "GB", "Jane Smith", new BigDecimal("500.0"), false);
 
     @BeforeEach
     void setUp() {
@@ -64,6 +70,25 @@ class BankAccountControllerTest {
                 .build();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+
+        // Set up SecurityContext for balance-sheet authorization checks
+        UserDetails principal = UserDetails.builder()
+                .id("user-1")
+                .username("john")
+                .email("john@example.com")
+                .password("secret")
+                .authorities(List.of())
+                .build();
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -341,6 +366,9 @@ class BankAccountControllerTest {
     @Test
     void testGetBalanceSheet_existingAccount_returnsOk() throws Exception {
         // Arrange
+        BankAccountEntity accountEntity = BankAccountEntity.builder()
+                .id("acc-1").userId("user-1").build();
+        when(bankAccountService.getEntityById("acc-1")).thenReturn(accountEntity);
         BalanceSheetResponse balanceSheet = new BalanceSheetResponse(
                 "acc-1", "John Doe", "EUR", BigDecimal.valueOf(1000), Collections.emptyList());
         when(reportingService.getBalanceSheet(eq("acc-1"), any(), any())).thenReturn(balanceSheet);
@@ -356,7 +384,7 @@ class BankAccountControllerTest {
     @Test
     void testGetBalanceSheet_nonExistingAccount_returnsNotFound() throws Exception {
         // Arrange
-        when(reportingService.getBalanceSheet(eq("999"), any(), any()))
+        when(bankAccountService.getEntityById("999"))
                 .thenThrow(new EntityNotFoundException("Account"));
 
         // Act & Assert
