@@ -12,6 +12,6 @@ public record CreateCountryRequest(
     String code,
 
     @NotBlank(message = "IBAN pattern is required")
-    @Size(min = 15, max = 34, message = "IBAN pattern must be between 15 and 34 characters")
+    @Size(min = 11, max = 30, message = "IBAN pattern must be between 11 and 30 characters")
     String ibanPattern
 ) {}
