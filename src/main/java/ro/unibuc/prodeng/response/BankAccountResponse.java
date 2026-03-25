@@ -1,5 +1,7 @@
 package ro.unibuc.prodeng.response;
 
+import java.math.BigDecimal;
+
 public record BankAccountResponse(
     String id,
     String iban,
@@ -7,6 +9,6 @@ public record BankAccountResponse(
     String currencyCode,
     String countryCode,
     String accountHolderName,
-    Double balance,
+    BigDecimal balance,
     boolean deleted
 ) {}

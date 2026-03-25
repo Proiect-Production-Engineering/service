@@ -1,5 +1,7 @@
 package ro.unibuc.prodeng.request;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -13,5 +15,5 @@ public record SetExchangeRateRequest(
 
     @NotNull(message = "Exchange rate is required")
     @Positive(message = "Exchange rate must be positive")
-    Double exchangeRate
+    BigDecimal exchangeRate
 ) {}
