@@ -1,8 +1,8 @@
 package ro.unibuc.prodeng.service;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +30,6 @@ public class AdminService {
     private final BankAccountRepository bankAccountRepository;
     private final Counter adminSearchCounter;
 
-    @Autowired
     public AdminService(MongoTemplate mongoTemplate, MeterRegistry meterRegistry,
                         BankAccountRepository bankAccountRepository) {
         this.mongoTemplate = mongoTemplate;
@@ -66,10 +65,10 @@ public class AdminService {
         Query query = new Query();
 
         if (request.iban() != null && !request.iban().isBlank()) {
-            query.addCriteria(Criteria.where("iban").regex(request.iban(), "i"));
+            query.addCriteria(Criteria.where("iban").regex(Pattern.quote(request.iban()), "i"));
         }
         if (request.ownerName() != null && !request.ownerName().isBlank()) {
-            query.addCriteria(Criteria.where("accountHolderName").regex(request.ownerName(), "i"));
+            query.addCriteria(Criteria.where("accountHolderName").regex(Pattern.quote(request.ownerName()), "i"));
         }
 
         int page = request.page() != null ? request.page() : 0;
@@ -101,7 +100,7 @@ public class AdminService {
             query.addCriteria(Criteria.where("type").is(request.type().toUpperCase()));
         }
         if (request.descriptionKeyword() != null && !request.descriptionKeyword().isBlank()) {
-            query.addCriteria(Criteria.where("description").regex(request.descriptionKeyword(), "i"));
+            query.addCriteria(Criteria.where("description").regex(Pattern.quote(request.descriptionKeyword()), "i"));
         }
         if (request.from() != null && request.to() != null) {
             query.addCriteria(Criteria.where("timestamp").gte(request.from()).lte(request.to()));
