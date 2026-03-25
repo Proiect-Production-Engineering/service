@@ -9,16 +9,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import ro.unibuc.prodeng.model.BankAccountEntity;
+import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
@@ -31,13 +35,11 @@ import ro.unibuc.prodeng.service.ReportingService;
 @RequestMapping("/api/accounts")
 @Tag(name = "Bank Accounts", description = "Bank account management endpoints with IBAN support")
 @SecurityRequirement(name = "Authentication")
+@RequiredArgsConstructor
 public class BankAccountController {
 
-    @Autowired
-    private BankAccountService bankAccountService;
-
-    @Autowired
-    private ReportingService reportingService;
+    private final BankAccountService bankAccountService;
+    private final ReportingService reportingService;
 
     @Operation(summary = "Create a new bank account",
             description = "Creates a new bank account for the authenticated user. An IBAN is automatically generated based on the country's IBAN pattern. Max 3 accounts per user, one per currency.")
@@ -153,6 +155,15 @@ public class BankAccountController {
             @Parameter(description = "Bank account ID") @PathVariable String id,
             @Parameter(description = "Start of time period (ISO-8601)") @RequestParam(required = false) Instant from,
             @Parameter(description = "End of time period (ISO-8601)") @RequestParam(required = false) Instant to) {
+        BankAccountEntity account = bankAccountService.getEntityById(id);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !account.getUserId().equals(userDetails.getId())) {
+            throw new IllegalArgumentException("You do not have access to this account's balance sheet");
+        }
+
         BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id, from, to);
         return ResponseEntity.ok(balanceSheet);
     }

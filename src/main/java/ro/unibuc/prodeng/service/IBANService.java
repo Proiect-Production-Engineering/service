@@ -2,6 +2,7 @@ package ro.unibuc.prodeng.service;
 
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.Random;
 
 import static java.lang.Character.isDigit;
@@ -26,7 +27,7 @@ import static java.lang.Character.isAlphabetic;
 @Service
 public class IBANService {
 
-    private final Random random = new Random();
+    private final Random random = new SecureRandom();
 
     /**
      * Generates a valid IBAN for the given country code and IBAN pattern.
