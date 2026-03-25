@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -26,23 +27,16 @@ import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BankAccountResponse;
 import ro.unibuc.prodeng.response.TransactionResponse;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class BankAccountService {
 
-    @Autowired
-    private BankAccountRepository bankAccountRepository;
-
-    @Autowired
-    private CountryService countryService;
-
-    @Autowired
-    private CurrencyService currencyService;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
-    private IBANService ibanService;
+    private final BankAccountRepository bankAccountRepository;
+    private final CountryService countryService;
+    private final CurrencyService currencyService;
+    private final TransactionRepository transactionRepository;
+    private final IBANService ibanService;
 
     public BankAccountResponse createAccount(CreateBankAccountRequest request) {
         String normalizedCurrency = request.currencyCode().toUpperCase();
@@ -82,7 +76,7 @@ public class BankAccountService {
                 .currencyCode(normalizedCurrency)
                 .countryCode(country.code())
                 .accountHolderName(request.accountHolderName())
-                .balance(0.0)
+                .balance(BigDecimal.ZERO)
                 .deleted(false)
                 .build();
 
@@ -115,7 +109,7 @@ public class BankAccountService {
     }
 
     public List<BankAccountResponse> getAccountsByUserId(String userId) {
-        return bankAccountRepository.findByUserId(userId).stream()
+        return bankAccountRepository.findByUserIdAndDeletedFalse(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -128,8 +122,14 @@ public class BankAccountService {
             throw new IllegalArgumentException("Account is already closed");
         }
 
+        BigDecimal balance = account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
+        if (balance.compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalArgumentException("Account balance must be zero before closing (current balance: " + balance + ")");
+        }
+
         account.setDeleted(true);
         bankAccountRepository.save(account);
+        log.info("Account {} closed", id);
     }
 
     @Transactional
@@ -166,7 +166,7 @@ public class BankAccountService {
             throw new IllegalArgumentException("Source and target accounts must have the same currency");
         }
 
-        BigDecimal sourceBalance = sourceAccount.getBalance() == null ? BigDecimal.ZERO : BigDecimal.valueOf(sourceAccount.getBalance());
+        BigDecimal sourceBalance = sourceAccount.getBalance() == null ? BigDecimal.ZERO : sourceAccount.getBalance();
         if (sourceBalance.compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient funds in source account");
         }
@@ -175,16 +175,18 @@ public class BankAccountService {
         String description = request.description();
 
         // Update stored balances atomically within the transaction
-        BigDecimal targetBalance = targetAccount.getBalance() == null ? BigDecimal.ZERO : BigDecimal.valueOf(targetAccount.getBalance());
+        BigDecimal targetBalance = targetAccount.getBalance() == null ? BigDecimal.ZERO : targetAccount.getBalance();
 
         BigDecimal updatedSource = sourceBalance.subtract(amount);
         BigDecimal updatedTarget = targetBalance.add(amount);
 
-        sourceAccount.setBalance(updatedSource.doubleValue());
-        targetAccount.setBalance(updatedTarget.doubleValue());
+        sourceAccount.setBalance(updatedSource);
+        targetAccount.setBalance(updatedTarget);
 
         bankAccountRepository.save(sourceAccount);
         bankAccountRepository.save(targetAccount);
+
+        log.info("Transfer of {} from account {} to account {} completed", amount, sourceAccount.getId(), targetAccount.getId());
 
         TransactionEntity debit = new TransactionEntity(
                 null,

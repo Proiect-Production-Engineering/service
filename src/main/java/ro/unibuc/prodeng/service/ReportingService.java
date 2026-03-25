@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ro.unibuc.prodeng.model.BankAccountEntity;
@@ -16,13 +16,11 @@ import ro.unibuc.prodeng.response.BalanceSheetEntry;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
 
 @Service
+@RequiredArgsConstructor
 public class ReportingService {
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
-    private BankAccountService bankAccountService;
+    private final TransactionRepository transactionRepository;
+    private final BankAccountService bankAccountService;
 
     public BalanceSheetResponse getBalanceSheet(String accountId) {
         return getBalanceSheet(accountId, null, null);

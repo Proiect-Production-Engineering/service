@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +24,10 @@ import ro.unibuc.prodeng.service.UserService;
 @RequestMapping("/api/users")
 @Tag(name = "Users", description = "User management endpoints")
 @SecurityRequirement(name = "Authentication")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     @GetMapping("/me")
     @Operation(summary = "View the currently authenticated user's account")
@@ -73,26 +73,12 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update a user's name (admin only)")
+    @Operation(summary = "Update a user (admin only)", description = "Updates a user's profile fields. Currently supports name changes.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "User updated successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
     public ResponseEntity<UserResponse> updateUser(
-            @Parameter(description = "User ID") @PathVariable String id,
-            @Valid @RequestBody ChangeNameRequest request) {
-        UserResponse user = userService.changeName(id, request.name());
-        return ResponseEntity.ok(user);
-    }
-
-    @PatchMapping("/{id}/name")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Change a user's name (admin only)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Name changed successfully"),
-        @ApiResponse(responseCode = "404", description = "User not found")
-    })
-    public ResponseEntity<UserResponse> changeName(
             @Parameter(description = "User ID") @PathVariable String id,
             @Valid @RequestBody ChangeNameRequest request) {
         UserResponse user = userService.changeName(id, request.name());
