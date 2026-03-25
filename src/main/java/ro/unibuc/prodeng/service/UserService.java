@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,21 +14,22 @@ import org.springframework.stereotype.Service;
 import ro.unibuc.prodeng.model.RoleEntity;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.model.UserEntity;
+import ro.unibuc.prodeng.repository.BankAccountRepository;
 import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 import ro.unibuc.prodeng.response.UserResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private static final String ADMIN_USERNAME = "admin";
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final BankAccountRepository bankAccountRepository;
 
     public UserResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -88,7 +90,16 @@ public class UserService {
         UserEntity existing = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(id));
         validateNotAdmin(existing);
+
+        bankAccountRepository.findByUserId(id).forEach(account -> {
+            if (!account.isDeleted()) {
+                account.setDeleted(true);
+                bankAccountRepository.save(account);
+            }
+        });
+
         userRepository.deleteById(id);
+        log.info("User {} deleted, bank accounts cascaded", id);
     }
 
     public UserResponse getUserByEmail(String email) throws EntityNotFoundException {

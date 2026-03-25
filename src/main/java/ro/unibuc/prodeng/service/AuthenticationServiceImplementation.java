@@ -1,6 +1,7 @@
 package ro.unibuc.prodeng.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,52 +18,47 @@ import ro.unibuc.prodeng.security.jwt.JwtUtilities;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class AuthenticationServiceImplementation implements AuthenticationService {
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtUtilities jwtUtilities;
-
-    @Autowired
-    private PasswordEncoder encoder;
+    private final UserRepository userRepository;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtilities jwtUtilities;
+    private final PasswordEncoder encoder;
 
     @Override
     public String signInUser(SignInRequest signInRequest) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(signInRequest.getUsername(), signInRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(signInRequest.username(), signInRequest.password()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return jwtUtilities.generateJwtToken(authentication);
     }
 
     @Override
     public String signUpUser(SignUpRequest signUpRequest) {
-        if ("admin".equals(signUpRequest.getUsername())) {
+        if ("admin".equals(signUpRequest.username())) {
             throw new IllegalArgumentException("Username 'admin' is reserved.");
         }
-        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + signUpRequest.getUsername());
+        if (userRepository.existsByUsername(signUpRequest.username())) {
+            throw new IllegalArgumentException("Username already exists: " + signUpRequest.username());
         }
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + signUpRequest.getEmail());
+        if (userRepository.existsByEmail(signUpRequest.email())) {
+            throw new IllegalArgumentException("Email already exists: " + signUpRequest.email());
         }
 
         UserEntity user = UserEntity.builder()
-                .username(signUpRequest.getUsername())
-                .email(signUpRequest.getEmail())
-                .password(encoder.encode(signUpRequest.getPassword()))
+                .username(signUpRequest.username())
+                .email(signUpRequest.email())
+                .password(encoder.encode(signUpRequest.password()))
                 .roles(new ArrayList<>(List.of(new RoleEntity("ROLE_USER"))))
                 .build();
         userRepository.save(user);
 
-        SignInRequest signInRequest = SignInRequest.builder()
-                .username(user.getUsername())
-                .password(signUpRequest.getPassword())
-                .build();
+        log.info("New user registered: {}", user.getUsername());
+
+        SignInRequest signInRequest = new SignInRequest(user.getUsername(), signUpRequest.password());
         return signInUser(signInRequest);
     }
 }
