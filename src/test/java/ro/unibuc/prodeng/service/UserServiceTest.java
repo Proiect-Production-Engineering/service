@@ -14,6 +14,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import ro.unibuc.prodeng.model.RoleEntity;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.model.UserEntity;
+import ro.unibuc.prodeng.repository.BankAccountRepository;
 import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 import ro.unibuc.prodeng.response.UserResponse;
@@ -38,6 +39,9 @@ class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private BankAccountRepository bankAccountRepository;
 
     @InjectMocks
     private UserService userService;
@@ -194,6 +198,7 @@ class UserServiceTest {
         // Arrange
         UserEntity existing = makeUser("1", "alice", "Alice", "alice@example.com");
         when(userRepository.findById("1")).thenReturn(Optional.of(existing));
+        when(bankAccountRepository.findByUserId("1")).thenReturn(Collections.emptyList());
 
         // Act
         userService.deleteUser("1");

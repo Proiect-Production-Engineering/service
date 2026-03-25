@@ -242,7 +242,7 @@ class AdminServiceTest {
         BankAccountEntity account = BankAccountEntity.builder()
                 .id("acc1").iban("RO49AAAA1B31007593840000").userId("user1")
                 .currencyCode("RON").countryCode("RO").accountHolderName("Test User")
-                .balance(1000.0).deleted(false).build();
+                .balance(BigDecimal.valueOf(1000.0)).deleted(false).build();
         when(mongoTemplate.count(any(Query.class), eq(BankAccountEntity.class))).thenReturn(1L);
         when(mongoTemplate.find(any(Query.class), eq(BankAccountEntity.class))).thenReturn(List.of(account));
 

@@ -3,6 +3,8 @@ package ro.unibuc.prodeng.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -170,7 +172,7 @@ class AdminControllerTest {
     @Test
     void testSearchAccounts_returnsPagedResults() throws Exception {
         // Arrange
-        BankAccountResponse account = new BankAccountResponse("acc1", "RO49AAAA1B31007593840000", "user1", "RON", "RO", "John Doe", 1500.0, false);
+        BankAccountResponse account = new BankAccountResponse("acc1", "RO49AAAA1B31007593840000", "user1", "RON", "RO", "John Doe", new BigDecimal("1500.0"), false);
         Page<BankAccountResponse> page = new PageImpl<>(List.of(account), PageRequest.of(0, 20), 1);
         when(adminService.searchAccounts(any(AccountSearchRequest.class))).thenReturn(page);
 

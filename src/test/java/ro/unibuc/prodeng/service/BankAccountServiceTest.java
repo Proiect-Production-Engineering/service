@@ -91,7 +91,7 @@ class BankAccountServiceTest {
         account.setUserId(userId);
         account.setCurrencyCode(currency);
         account.setDeleted(deleted);
-        account.setBalance(balance);
+        account.setBalance(BigDecimal.valueOf(balance));
         return account;
     }
 
@@ -147,8 +147,8 @@ class BankAccountServiceTest {
 
         verify(transactionRepository, times(1)).saveAll(any(List.class));
 
-        assertEquals(800.0, source.getBalance());
-        assertEquals(200.0, target.getBalance());
+        assertEquals(0, new BigDecimal("800.00").compareTo(source.getBalance()));
+        assertEquals(0, new BigDecimal("200.00").compareTo(target.getBalance()));
         verify(bankAccountRepository).save(source);
         verify(bankAccountRepository).save(target);
     }
@@ -420,8 +420,8 @@ class BankAccountServiceTest {
 
         // Assert
         assertEquals(2, result.size());
-        assertEquals(800.0, source.getBalance());
-        assertEquals(200.0, target.getBalance());
+        assertEquals(0, new BigDecimal("800.00").compareTo(source.getBalance()));
+        assertEquals(0, new BigDecimal("200.00").compareTo(target.getBalance()));
         verify(bankAccountRepository).save(source);
         verify(bankAccountRepository).save(target);
         verify(transactionRepository).saveAll(any(List.class));
@@ -457,7 +457,7 @@ class BankAccountServiceTest {
         assertEquals("RO49AAAA1234567890123456", result.iban());
         assertEquals("EUR", result.currencyCode());
         assertEquals("John Doe", result.accountHolderName());
-        assertEquals(0.0, result.balance());
+        assertEquals(0, BigDecimal.ZERO.compareTo(result.balance()));
         assertFalse(result.deleted());
     }
 
@@ -579,7 +579,7 @@ class BankAccountServiceTest {
 
         // Assert
         assertEquals("acc-1", result.id());
-        assertEquals(500.0, result.balance());
+        assertEquals(0, BigDecimal.valueOf(500.0).compareTo(result.balance()));
     }
 
     @Test
@@ -654,7 +654,7 @@ class BankAccountServiceTest {
         acc.setIban("RO49AAAA");
         acc.setCountryCode("RO");
         acc.setAccountHolderName("Jane");
-        when(bankAccountRepository.findByUserId("user-x")).thenReturn(List.of(acc));
+        when(bankAccountRepository.findByUserIdAndDeletedFalse("user-x")).thenReturn(List.of(acc));
 
         // Act
         List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
@@ -667,7 +667,7 @@ class BankAccountServiceTest {
     @Test
     void testGetAccountsByUserId_noAccounts_returnsEmptyList() {
         // Arrange
-        when(bankAccountRepository.findByUserId("user-x")).thenReturn(Collections.emptyList());
+        when(bankAccountRepository.findByUserIdAndDeletedFalse("user-x")).thenReturn(Collections.emptyList());
 
         // Act
         List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
@@ -681,9 +681,9 @@ class BankAccountServiceTest {
     // ========================
 
     @Test
-    void testCloseAccount_activeAccount_marksAsDeleted() {
+    void testCloseAccount_activeAccountWithZeroBalance_marksAsDeleted() {
         // Arrange
-        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 0.0);
         when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
 
         // Act
@@ -692,6 +692,18 @@ class BankAccountServiceTest {
         // Assert
         assertTrue(acc.isDeleted());
         verify(bankAccountRepository).save(acc);
+    }
+
+    @Test
+    void testCloseAccount_activeAccountWithNonZeroBalance_throwsIllegalArgumentException() {
+        // Arrange
+        BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", false, 100.0);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act & Assert
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> bankAccountService.closeAccount("acc-1"));
+        assertTrue(ex.getMessage().contains("balance must be zero"));
     }
 
     @Test
