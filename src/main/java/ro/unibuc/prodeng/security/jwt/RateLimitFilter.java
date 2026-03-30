@@ -17,6 +17,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Simple in-memory rate limiter for authentication endpoints.
  * Limits requests per IP to prevent brute-force attacks.
+ * <p>
+ * Uses {@code request.getRemoteAddr()} for client IP resolution. When deployed
+ * behind a reverse proxy, set {@code server.forward-headers-strategy=native} in
+ * application.properties so that the container unwraps X-Forwarded-For before
+ * the request reaches this filter.
  */
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -36,9 +41,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String clientIp = getClientIp(request);
+        String clientIp = request.getRemoteAddr();
+        long now = System.currentTimeMillis();
+
+        // Evict expired windows to prevent unbounded memory growth
+        requestCounts.entrySet().removeIf(e -> now - e.getValue().windowStart > WINDOW_MS);
+
         RateWindow window = requestCounts.compute(clientIp, (key, existing) -> {
-            long now = System.currentTimeMillis();
             if (existing == null || now - existing.windowStart > WINDOW_MS) {
                 return new RateWindow(now, new AtomicInteger(1));
             }
@@ -55,14 +64,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private static class RateWindow {
