@@ -24,7 +24,6 @@ import ro.unibuc.prodeng.response.BankAccountResponse;
 import ro.unibuc.prodeng.response.TransactionResponse;
 import ro.unibuc.prodeng.service.AdminService;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
