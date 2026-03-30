@@ -391,4 +391,16 @@ class BankAccountControllerTest {
         mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "999").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testGetBalanceSheet_unauthorizedUser_returnsForbidden() throws Exception {
+        // Arrange — account belongs to user-2, but SecurityContext is authenticated as user-1
+        BankAccountEntity othersAccount = BankAccountEntity.builder()
+                .id("acc-2").userId("user-2").build();
+        when(bankAccountService.getEntityById("acc-2")).thenReturn(othersAccount);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-2").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
 }

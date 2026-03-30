@@ -154,29 +154,32 @@ class RateLimitFilterTest {
         assertEquals(200, response2.getStatus());
     }
 
-    // --- X-Forwarded-For header ---
+    // --- Rate limiting is based on remoteAddr only; X-Forwarded-For is ignored ---
 
     @Test
-    void testXForwardedForHeader_usesFirstIpForRateLimit() throws ServletException, IOException {
-        // Arrange
+    void testXForwardedForHeader_isIgnored_remoteAddrUsedForRateLimit() throws ServletException, IOException {
+        // Arrange — same remoteAddr, different X-Forwarded-For headers
         request.setRequestURI("/api/auth/signin");
         request.setRemoteAddr("127.0.0.1");
-        request.addHeader("X-Forwarded-For", "203.0.113.50, 70.41.3.18, 150.172.238.178");
 
-        // Act — exhaust limit for the forwarded IP
+        // Exhaust limit using remoteAddr "127.0.0.1"
         for (int i = 0; i < 21; i++) {
+            MockHttpServletRequest req = new MockHttpServletRequest();
+            req.setRequestURI("/api/auth/signin");
+            req.setRemoteAddr("127.0.0.1");
+            req.addHeader("X-Forwarded-For", "203.0.113." + i); // different each time — must be ignored
             response = new MockHttpServletResponse();
-            rateLimitFilter.doFilterInternal(request, response, filterChain);
+            rateLimitFilter.doFilterInternal(req, response, filterChain);
         }
 
-        // Assert — should be rate limited based on first IP in X-Forwarded-For
+        // Assert — rate limited by remoteAddr, not by the varying X-Forwarded-For values
         assertEquals(HttpStatus.TOO_MANY_REQUESTS.value(), response.getStatus());
 
-        // A request from a different forwarded IP should still pass
+        // A request from a genuinely different remoteAddr should still pass
         MockHttpServletRequest request2 = new MockHttpServletRequest();
         request2.setRequestURI("/api/auth/signin");
-        request2.setRemoteAddr("127.0.0.1");
-        request2.addHeader("X-Forwarded-For", "198.51.100.1");
+        request2.setRemoteAddr("10.10.10.10");
+        request2.addHeader("X-Forwarded-For", "127.0.0.1"); // spoofed — must be ignored
         MockHttpServletResponse response2 = new MockHttpServletResponse();
 
         rateLimitFilter.doFilterInternal(request2, response2, filterChain);

@@ -649,25 +649,29 @@ class BankAccountServiceTest {
 
     @Test
     void testGetAccountsByUserId_withAccounts_returnsList() {
-        // Arrange
+        // Arrange — includes a soft-deleted account (admin view should show all)
         BankAccountEntity acc = makeAccount("acc-1", "user-x", "EUR", false, 200.0);
         acc.setIban("RO49AAAA");
         acc.setCountryCode("RO");
         acc.setAccountHolderName("Jane");
-        when(bankAccountRepository.findByUserIdAndDeletedFalse("user-x")).thenReturn(List.of(acc));
+        BankAccountEntity deleted = makeAccount("acc-2", "user-x", "GBP", true, 0.0);
+        deleted.setIban("RO49BBBB");
+        deleted.setCountryCode("RO");
+        deleted.setAccountHolderName("Jane");
+        when(bankAccountRepository.findByUserId("user-x")).thenReturn(List.of(acc, deleted));
 
         // Act
         List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
 
-        // Assert
-        assertEquals(1, result.size());
+        // Assert — both active and deleted accounts are returned
+        assertEquals(2, result.size());
         assertEquals("user-x", result.get(0).userId());
     }
 
     @Test
     void testGetAccountsByUserId_noAccounts_returnsEmptyList() {
         // Arrange
-        when(bankAccountRepository.findByUserIdAndDeletedFalse("user-x")).thenReturn(Collections.emptyList());
+        when(bankAccountRepository.findByUserId("user-x")).thenReturn(Collections.emptyList());
 
         // Act
         List<BankAccountResponse> result = bankAccountService.getAccountsByUserId("user-x");
