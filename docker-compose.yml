@@ -9,6 +9,7 @@ services:
     environment:
       ENVIRONMENT_NAME: local
       MONGODB_CONNECTION_URL: mongodb://root:example@mongo:27017/
+      ADMIN_PASSWORD: admin-local-dev
     restart: always
     profiles:
       - "prod-eng-service"
