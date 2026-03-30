@@ -109,7 +109,7 @@ public class BankAccountService {
     }
 
     public List<BankAccountResponse> getAccountsByUserId(String userId) {
-        return bankAccountRepository.findByUserIdAndDeletedFalse(userId).stream()
+        return bankAccountRepository.findByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
