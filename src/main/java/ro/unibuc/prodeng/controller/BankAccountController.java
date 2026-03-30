@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.AccessDeniedException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
@@ -161,7 +162,7 @@ public class BankAccountController {
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         if (!isAdmin && !account.getUserId().equals(userDetails.getId())) {
-            throw new IllegalArgumentException("You do not have access to this account's balance sheet");
+            throw new AccessDeniedException("You do not have access to this account's balance sheet");
         }
 
         BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id, from, to);
