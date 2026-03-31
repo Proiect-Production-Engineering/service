@@ -1,4 +1,4 @@
-package ro.unibuc.prodeng;
+package ro.unibuc.prodeng.integration;
 
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import ro.unibuc.prodeng.IntegrationTestBase;
+import ro.unibuc.prodeng.integration.IntegrationTestBase;
 import ro.unibuc.prodeng.model.CurrencyEntity;
 import ro.unibuc.prodeng.model.CurrencyExchangeRateEntity;
 import ro.unibuc.prodeng.repository.CurrencyExchangeRateRepository;
