@@ -403,4 +403,35 @@ class BankAccountControllerTest {
         mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-2").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void testGetBalanceSheet_adminUser_canAccessOtherUsersAccount() throws Exception {
+        // Arrange — re-set SecurityContext with an admin principal
+        SecurityContextHolder.clearContext();
+        UserDetails adminPrincipal = UserDetails.builder()
+                .id("admin-1")
+                .username("admin")
+                .email("admin@example.com")
+                .password("secret")
+                .authorities(List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
+                .build();
+        UsernamePasswordAuthenticationToken adminAuth =
+                new UsernamePasswordAuthenticationToken(adminPrincipal, null, adminPrincipal.getAuthorities());
+        SecurityContext adminContext = SecurityContextHolder.createEmptyContext();
+        adminContext.setAuthentication(adminAuth);
+        SecurityContextHolder.setContext(adminContext);
+
+        BankAccountEntity othersAccount = BankAccountEntity.builder()
+                .id("acc-2").userId("user-2").build();
+        when(bankAccountService.getEntityById("acc-2")).thenReturn(othersAccount);
+        BalanceSheetResponse balanceSheet = new BalanceSheetResponse(
+                "acc-2", "Jane Smith", "GBP", BigDecimal.valueOf(500), Collections.emptyList());
+        when(reportingService.getBalanceSheet(eq("acc-2"), any(), any())).thenReturn(balanceSheet);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-2").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountId", is("acc-2")))
+                .andExpect(jsonPath("$.accountName", is("Jane Smith")));
+    }
 }

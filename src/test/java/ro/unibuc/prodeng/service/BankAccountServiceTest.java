@@ -711,6 +711,25 @@ class BankAccountServiceTest {
     }
 
     @Test
+    void testCloseAccount_nullBalance_treatedAsZero_marksAsDeleted() {
+        // Arrange
+        BankAccountEntity acc = new BankAccountEntity();
+        acc.setId("acc-1");
+        acc.setUserId(CURRENT_USER_ID);
+        acc.setCurrencyCode("EUR");
+        acc.setDeleted(false);
+        acc.setBalance(null);
+        when(bankAccountRepository.findById("acc-1")).thenReturn(Optional.of(acc));
+
+        // Act
+        bankAccountService.closeAccount("acc-1");
+
+        // Assert
+        assertTrue(acc.isDeleted());
+        verify(bankAccountRepository).save(acc);
+    }
+
+    @Test
     void testCloseAccount_alreadyClosed_throwsIllegalArgumentException() {
         // Arrange
         BankAccountEntity acc = makeAccount("acc-1", CURRENT_USER_ID, "EUR", true, 0.0);

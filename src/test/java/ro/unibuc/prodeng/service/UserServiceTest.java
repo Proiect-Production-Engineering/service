@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.RoleEntity;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.model.UserEntity;
@@ -204,6 +205,64 @@ class UserServiceTest {
         userService.deleteUser("1");
 
         // Assert
+        verify(userRepository, times(1)).deleteById("1");
+    }
+
+    @Test
+    void testDeleteUser_withActiveAccounts_cascadeSoftDeletesAccounts() {
+        // Arrange
+        UserEntity existing = makeUser("1", "alice", "Alice", "alice@example.com");
+        when(userRepository.findById("1")).thenReturn(Optional.of(existing));
+
+        BankAccountEntity activeAccount1 = new BankAccountEntity();
+        activeAccount1.setId("acc-1");
+        activeAccount1.setUserId("1");
+        activeAccount1.setDeleted(false);
+
+        BankAccountEntity activeAccount2 = new BankAccountEntity();
+        activeAccount2.setId("acc-2");
+        activeAccount2.setUserId("1");
+        activeAccount2.setDeleted(false);
+
+        when(bankAccountRepository.findByUserId("1")).thenReturn(List.of(activeAccount1, activeAccount2));
+
+        // Act
+        userService.deleteUser("1");
+
+        // Assert — both accounts should be soft-deleted
+        assertTrue(activeAccount1.isDeleted());
+        assertTrue(activeAccount2.isDeleted());
+        verify(bankAccountRepository, times(1)).save(activeAccount1);
+        verify(bankAccountRepository, times(1)).save(activeAccount2);
+        verify(userRepository, times(1)).deleteById("1");
+    }
+
+    @Test
+    void testDeleteUser_withMixOfActiveAndDeletedAccounts_onlyCascadesActiveOnes() {
+        // Arrange
+        UserEntity existing = makeUser("1", "alice", "Alice", "alice@example.com");
+        when(userRepository.findById("1")).thenReturn(Optional.of(existing));
+
+        BankAccountEntity activeAccount = new BankAccountEntity();
+        activeAccount.setId("acc-1");
+        activeAccount.setUserId("1");
+        activeAccount.setDeleted(false);
+
+        BankAccountEntity alreadyDeletedAccount = new BankAccountEntity();
+        alreadyDeletedAccount.setId("acc-2");
+        alreadyDeletedAccount.setUserId("1");
+        alreadyDeletedAccount.setDeleted(true);
+
+        when(bankAccountRepository.findByUserId("1")).thenReturn(List.of(activeAccount, alreadyDeletedAccount));
+
+        // Act
+        userService.deleteUser("1");
+
+        // Assert — only the active account should be cascade-deleted
+        assertTrue(activeAccount.isDeleted());
+        assertTrue(alreadyDeletedAccount.isDeleted()); // was already deleted
+        verify(bankAccountRepository, times(1)).save(activeAccount);
+        verify(bankAccountRepository, never()).save(alreadyDeletedAccount); // already deleted, not re-saved
         verify(userRepository, times(1)).deleteById("1");
     }
 
