@@ -106,3 +106,24 @@ NOTE: for a live demo, please check out [this youtube video](https://youtu.be/-9
   * http://localhost:8090
   * default credentials: username `unibuc`, password `adobe`
   * database `test` contains application entities
+
+# Running tests
+
+The project defines several types of automated tests. All Gradle commands below are executed from the `service` folder.
+
+* Run unit tests (default `test` task, integration and E2E excluded by tag):
+  * `./gradlew test`
+
+* Run integration tests (tagged with `@Tag("IntegrationTest")`, e.g. BankAccount and Currency Exchange Rate integration tests under `ro.unibuc.prodeng.integration`):
+  * `./gradlew testIT`
+
+* Run end-to-end (E2E) tests (Cucumber):
+  * Make sure MongoDB and the Spring Boot service are running locally (for example using `./start_mongo_only.sh` and `./gradlew bootRun`).
+  * Then execute:
+    * `./gradlew testE2E`
+  * This runs the `@E2E` scenarios, including the currency exchange rate flow defined in `src/test/resources/currency-exchange-rate-e2e.feature` and implemented in `ro.unibuc.prodeng.e2e.CurrencyExchangeRateE2ESteps`.
+
+* Run performance test plan for the currency exchange rate endpoint:
+  * Open the JMeter plan `src/test/resources/performance/currency-exchange-rate-plan.jmx` in Apache JMeter.
+  * Replace the placeholder `Bearer YOUR_JWT_TOKEN_HERE` header value with a valid JWT (obtained via `/api/auth/signin` or `/api/auth/signup`).
+  * Start the application (for example with `./gradlew bootRun`) and then run the test plan from the JMeter UI.
