@@ -1,4 +1,4 @@
-package ro.unibuc.prodeng;
+package ro.unibuc.prodeng.integration;
 
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,5 +31,6 @@ public abstract class IntegrationTestBase {
     static void setProperties(DynamicPropertyRegistry registry) {
         String mongoUrl = "mongodb://localhost:" + mongoDBContainer.getMappedPort(27017);
         registry.add("mongodb.connection.url", () -> mongoUrl);
+        registry.add("prodeng.adminPassword", () -> "test-admin-password");
     }
 }
