@@ -16,6 +16,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureMockMvc
 @Testcontainers
 @Tag("IntegrationTest")
+@org.springframework.test.context.TestPropertySource(properties = {
+        "prodeng.rateLimit.maxRequests=10000"
+})
 public abstract class IntegrationTestBase {
     private static final MongoDBContainer mongoDBContainer =
             new MongoDBContainer("mongo:6.0.20")
