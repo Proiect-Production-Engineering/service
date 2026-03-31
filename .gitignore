@@ -47,3 +47,4 @@ infrastructure/loki/durable/
 
 ### Claude Code ###
 .claude/
+jmeter.log

@@ -1,6 +1,7 @@
 package ro.unibuc.prodeng.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +28,9 @@ public class WebSecurityConfig {
     private final UserDetailsServiceImplementation userDetailsService;
     private final AuthenticationEntryPointJwt unauthorizedHandler;
     private final AuthenticationTokenFilter authenticationTokenFilter;
+
+    @Value("${prodeng.rateLimit.maxRequests:20}")
+    private int rateLimitMaxRequests;
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -69,6 +73,6 @@ public class WebSecurityConfig {
 
     @Bean
     public RateLimitFilter rateLimitFilter() {
-        return new RateLimitFilter();
+        return new RateLimitFilter(rateLimitMaxRequests);
     }
 }

@@ -26,10 +26,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS_PER_WINDOW = 20;
+    private static final int DEFAULT_MAX_REQUESTS = 20;
     private static final long WINDOW_MS = 60_000; // 1 minute
 
+    private final int maxRequestsPerWindow;
     private final Map<String, RateWindow> requestCounts = new ConcurrentHashMap<>();
+
+    public RateLimitFilter() {
+        this(DEFAULT_MAX_REQUESTS);
+    }
+
+    public RateLimitFilter(int maxRequestsPerWindow) {
+        this.maxRequestsPerWindow = maxRequestsPerWindow;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -55,7 +64,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return existing;
         });
 
-        if (window.count.get() > MAX_REQUESTS_PER_WINDOW) {
+        if (window.count.get() > maxRequestsPerWindow) {
             log.warn("Rate limit exceeded for IP: {}", clientIp);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
