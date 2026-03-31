@@ -125,7 +125,7 @@ task testE2E() {
 					'--plugin', 'pretty',
 					'--plugin', 'html:build/reports/cucumber/cucumber-report.html',
 					'--glue', 'ro.unibuc.prodeng.e2e',
-					'src/test/resources']
+					'src/test/resources/e2e']
 		}
 	}
 }
