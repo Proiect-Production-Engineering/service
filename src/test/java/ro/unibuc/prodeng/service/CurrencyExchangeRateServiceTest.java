@@ -68,11 +68,26 @@ class CurrencyExchangeRateServiceTest {
         // Act
         ExchangeRateResponse response = exchangeRateService.setExchangeRate(request);
 
-        // Assert
+        // Assert — forward rate
         assertEquals("EUR", response.sourceCurrency());
         assertEquals("RON", response.targetCurrency());
         assertEquals(0, new BigDecimal("4.5").compareTo(response.exchangeRate()));
-        verify(exchangeRateRepository, times(2)).save(any(CurrencyExchangeRateEntity.class));
+
+        // Assert — verify both forward and inverse rates were persisted with correct values
+        var captor = org.mockito.ArgumentCaptor.forClass(CurrencyExchangeRateEntity.class);
+        verify(exchangeRateRepository, times(2)).save(captor.capture());
+        var saved = captor.getAllValues();
+
+        CurrencyExchangeRateEntity forwardSaved = saved.stream()
+                .filter(e -> "EUR".equals(e.sourceCurrency()) && "RON".equals(e.targetCurrency()))
+                .findFirst().orElseThrow();
+        CurrencyExchangeRateEntity inverseSaved = saved.stream()
+                .filter(e -> "RON".equals(e.sourceCurrency()) && "EUR".equals(e.targetCurrency()))
+                .findFirst().orElseThrow();
+
+        assertEquals(0, new BigDecimal("4.500000").compareTo(forwardSaved.exchangeRate()));
+        // Inverse of 4.5 at 6-decimal scale = 0.222222
+        assertEquals(0, new BigDecimal("0.222222").compareTo(inverseSaved.exchangeRate()));
     }
 
     @Test
