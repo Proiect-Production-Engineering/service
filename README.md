@@ -122,8 +122,12 @@ The project defines several types of automated tests. All Gradle commands below 
   * Then execute:
     * `./gradlew testE2E`
   * This runs the `@E2E` scenarios, including the currency exchange rate flow defined in `src/test/resources/e2e/currency-exchange-rate-e2e.feature` and implemented in `ro.unibuc.prodeng.e2e.CurrencyExchangeRateE2ESteps`.
+  * Admin transaction search E2E: `src/test/resources/e2e/admin-search-e2e.feature` with steps in `ro.unibuc.prodeng.e2e.AdminSearchE2ESteps`. Set `ADMIN_PASSWORD` to match the running server (defaults to `test-admin-password` in the step definitions if unset).
 
 * Run performance test plan for the currency exchange rate endpoint:
   * Open the JMeter plan `src/test/resources/performance/currency-exchange-rate-plan.jmx` in Apache JMeter.
   * Replace the placeholder `Bearer YOUR_JWT_TOKEN_HERE` header value with a valid JWT (obtained via `/api/auth/signin` or `/api/auth/signup`).
   * Start the application (for example with `./gradlew bootRun`) and then run the test plan from the JMeter UI.
+
+* Run performance smoke for admin transaction search (repository root `jmeter/`):
+  * Open `jmeter/admin-search-smoke.jmx` in Apache JMeter, set the `ADMIN_PASSWORD` user-defined variable to match your server, start the app, then run the plan. See `jmeter/README.md` for details.

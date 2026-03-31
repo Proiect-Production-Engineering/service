@@ -13,10 +13,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-
-import ro.unibuc.prodeng.IntegrationTestBase;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.UserEntity;
@@ -38,11 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for admin transaction/account search (MongoDB via Testcontainers).
  * Isolated package so other team members can add their own *IntegrationTest classes without overlap.
  */
-@TestPropertySource(properties = {
-        "prodeng.adminPassword=ItAdminPassword123!Secure"
-})
 @DisplayName("Admin API integration tests (IT)")
 class AdminEndpointsIntegrationTest extends IntegrationTestBase {
+
+    private static final String ADMIN_PASSWORD = "test-admin-password";
 
     private static final String IT_IBAN_PREFIX = "IT99TEST";
     private static final String IT_TX_DESCRIPTION = "IT-ADMIN-INTEGRATION-TEST";
@@ -160,7 +156,7 @@ class AdminEndpointsIntegrationTest extends IntegrationTestBase {
     }
 
     private String signInAsAdmin() throws Exception {
-        SignInRequest signIn = new SignInRequest("admin", "ItAdminPassword123!Secure");
+        SignInRequest signIn = new SignInRequest("admin", ADMIN_PASSWORD);
         String response = mockMvc.perform(post("/api/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(signIn)))
