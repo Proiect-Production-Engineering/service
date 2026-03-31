@@ -121,7 +121,7 @@ The project defines several types of automated tests. All Gradle commands below 
   * Make sure MongoDB and the Spring Boot service are running locally (for example using `./start_mongo_only.sh` and `./gradlew bootRun`).
   * Then execute:
     * `./gradlew testE2E`
-  * This runs the `@E2E` scenarios, including the currency exchange rate flow defined in `src/test/resources/currency-exchange-rate-e2e.feature` and implemented in `ro.unibuc.prodeng.e2e.CurrencyExchangeRateE2ESteps`.
+  * This runs the `@E2E` scenarios, including the currency exchange rate flow defined in `src/test/resources/e2e/currency-exchange-rate-e2e.feature` and implemented in `ro.unibuc.prodeng.e2e.CurrencyExchangeRateE2ESteps`.
 
 * Run performance test plan for the currency exchange rate endpoint:
   * Open the JMeter plan `src/test/resources/performance/currency-exchange-rate-plan.jmx` in Apache JMeter.
