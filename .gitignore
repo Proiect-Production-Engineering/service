@@ -48,3 +48,6 @@ infrastructure/loki/durable/
 ### Claude Code ###
 .claude/
 jmeter.log
+
+### Jenkins ###
+jenkins_config/
