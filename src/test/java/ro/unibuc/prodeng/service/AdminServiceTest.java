@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import org.springframework.data.domain.Page;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class AdminServiceTest {
 
     @Mock
@@ -283,5 +283,26 @@ class AdminServiceTest {
         // Assert
         assertTrue(results.getContent().isEmpty());
         verify(mongoTemplate).find(any(Query.class), eq(BankAccountEntity.class));
+    }
+
+    @Test
+    void testSearchAccounts_incrementsAccountSearchCounter() {
+        // Arrange
+        AccountSearchRequest request = new AccountSearchRequest(null, null, null, null);
+        when(mongoTemplate.count(any(Query.class), eq(BankAccountEntity.class))).thenReturn(0L);
+        when(mongoTemplate.find(any(Query.class), eq(BankAccountEntity.class))).thenReturn(Collections.emptyList());
+
+        // Act
+        adminService.searchAccounts(request);
+        adminService.searchAccounts(request);
+
+        // Assert — account counter incremented, transaction counter untouched
+        Counter accountCounter = meterRegistry.find("admin.accounts.search.count").counter();
+        assertNotNull(accountCounter);
+        assertEquals(2.0, accountCounter.count());
+
+        Counter txCounter = meterRegistry.find("admin.transactions.search.count").counter();
+        assertNotNull(txCounter);
+        assertEquals(0.0, txCounter.count());
     }
 }

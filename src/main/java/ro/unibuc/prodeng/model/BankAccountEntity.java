@@ -23,6 +23,7 @@ public class BankAccountEntity {
     @Indexed(unique = true)
     private String iban;
 
+    @Indexed
     private String userId;
 
     private String currencyCode;

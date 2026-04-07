@@ -14,7 +14,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import ro.unibuc.prodeng.model.CurrencyEntity;
+import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.CurrencyRepository;
+import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateCurrencyRequest;
 import ro.unibuc.prodeng.request.SignInRequest;
 import ro.unibuc.prodeng.request.SignUpRequest;
@@ -31,17 +33,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CurrencyEndpointsIntegrationTest extends IntegrationTestBase {
 
     private static final String IT_CURRENCY_PREFIX = "ITX";
+    private static final String IT_USER_PREFIX = "itcur_";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private CurrencyRepository currencyRepository;
+    @Autowired private UserRepository userRepository;
 
     @BeforeEach
     void cleanIntegrationData() {
         mongoTemplate.remove(
                 Query.query(Criteria.where("code").regex("^" + IT_CURRENCY_PREFIX)),
                 CurrencyEntity.class);
+        mongoTemplate.remove(
+                Query.query(Criteria.where("username").regex("^" + IT_USER_PREFIX)),
+                UserEntity.class);
     }
 
     // ============================================================ GET /api/currencies

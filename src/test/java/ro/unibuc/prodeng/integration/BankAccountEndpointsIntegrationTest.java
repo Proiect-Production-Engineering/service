@@ -16,7 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import ro.unibuc.prodeng.integration.IntegrationTestBase;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.CountryEntity;
 import ro.unibuc.prodeng.model.CurrencyEntity;
@@ -81,21 +80,24 @@ class BankAccountEndpointsIntegrationTest extends IntegrationTestBase {
             countryRepository.save(new CountryEntity(null, "United Kingdom", "GB", "aaaannnnnnnnnnnnnn"));
         }
 
-        // Clean test-specific data
+        // Clean test-specific data using targeted queries instead of loading entire collections
         mongoTemplate.remove(
                 Query.query(Criteria.where("iban").regex("^" + IT_IBAN_PREFIX)),
                 BankAccountEntity.class);
-        // Clean accounts created via the API by test users
-        var testUserIds = userRepository.findAll().stream()
-                .filter(u -> u.getUsername().startsWith(IT_USERNAME_PREFIX))
-                .map(UserEntity::getId)
-                .toList();
+
+        // Find test user IDs with a targeted query
+        var testUserIds = mongoTemplate.find(
+                Query.query(Criteria.where("username").regex("^" + IT_USERNAME_PREFIX)),
+                UserEntity.class
+        ).stream().map(UserEntity::getId).toList();
+
         if (!testUserIds.isEmpty()) {
-            // Clean transactions linked to those accounts
-            var testAccountIds = bankAccountRepository.findAll().stream()
-                    .filter(a -> testUserIds.contains(a.getUserId()))
-                    .map(BankAccountEntity::getId)
-                    .toList();
+            // Find account IDs belonging to test users with a targeted query
+            var testAccountIds = mongoTemplate.find(
+                    Query.query(Criteria.where("userId").in(testUserIds)),
+                    BankAccountEntity.class
+            ).stream().map(BankAccountEntity::getId).toList();
+
             if (!testAccountIds.isEmpty()) {
                 mongoTemplate.remove(
                         Query.query(Criteria.where("accountId").in(testAccountIds)),
@@ -174,6 +176,11 @@ class BankAccountEndpointsIntegrationTest extends IntegrationTestBase {
     void createAccount_maxAccountsExceeded_returns400() throws Exception {
         String jwt = signUpUser(IT_USERNAME_PREFIX + "maxacc", "maxacc@itbank.test");
 
+        // Seed a 4th currency so we can attempt creating a 4th account
+        if (!currencyRepository.existsByCode("USD")) {
+            currencyRepository.save(new CurrencyEntity(null, "US Dollar", "USD"));
+        }
+
         // Create 3 accounts (max)
         for (String currency : new String[]{"EUR", "RON", "GBP"}) {
             CreateBankAccountRequest body = new CreateBankAccountRequest(currency, "RO", "Max Test");
@@ -184,12 +191,14 @@ class BankAccountEndpointsIntegrationTest extends IntegrationTestBase {
                     .andExpect(status().isCreated());
         }
 
-        // 4th should fail — re-seed a new currency won't help since all 3 known currencies are used,
-        // but even if we try with an unregistered one it fails on currency validation first.
-        // Instead, close one account and re-create to prove the limit is on active accounts.
-        // For simplicity, just try creating a 4th with an existing currency — fails on dup currency first.
-        // Better: try with a valid new scenario. We'll test the max-limit message via unit tests;
-        // here we verify the 3-account happy path worked.
+        // 4th account should fail with max-accounts error
+        CreateBankAccountRequest body = new CreateBankAccountRequest("USD", "RO", "Exceeded");
+        mockMvc.perform(post("/api/accounts")
+                        .header(AuthenticationTokenFilter.HEADER_TITLE, AuthenticationTokenFilter.HEADER_PREFIX + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", containsString("Maximum number of accounts")));
     }
 
     // ==================================== GET MY ACCOUNTS ====================

@@ -9,7 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.RoleEntity;
@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
@@ -199,7 +199,7 @@ class UserServiceTest {
         // Arrange
         UserEntity existing = makeUser("1", "alice", "Alice", "alice@example.com");
         when(userRepository.findById("1")).thenReturn(Optional.of(existing));
-        when(bankAccountRepository.findByUserId("1")).thenReturn(Collections.emptyList());
+        when(bankAccountRepository.findByUserIdAndDeletedFalse("1")).thenReturn(Collections.emptyList());
 
         // Act
         userService.deleteUser("1");
@@ -224,7 +224,7 @@ class UserServiceTest {
         activeAccount2.setUserId("1");
         activeAccount2.setDeleted(false);
 
-        when(bankAccountRepository.findByUserId("1")).thenReturn(List.of(activeAccount1, activeAccount2));
+        when(bankAccountRepository.findByUserIdAndDeletedFalse("1")).thenReturn(List.of(activeAccount1, activeAccount2));
 
         // Act
         userService.deleteUser("1");
@@ -232,8 +232,7 @@ class UserServiceTest {
         // Assert — both accounts should be soft-deleted
         assertTrue(activeAccount1.isDeleted());
         assertTrue(activeAccount2.isDeleted());
-        verify(bankAccountRepository, times(1)).save(activeAccount1);
-        verify(bankAccountRepository, times(1)).save(activeAccount2);
+        verify(bankAccountRepository, times(1)).saveAll(any(List.class));
         verify(userRepository, times(1)).deleteById("1");
     }
 
@@ -248,21 +247,15 @@ class UserServiceTest {
         activeAccount.setUserId("1");
         activeAccount.setDeleted(false);
 
-        BankAccountEntity alreadyDeletedAccount = new BankAccountEntity();
-        alreadyDeletedAccount.setId("acc-2");
-        alreadyDeletedAccount.setUserId("1");
-        alreadyDeletedAccount.setDeleted(true);
-
-        when(bankAccountRepository.findByUserId("1")).thenReturn(List.of(activeAccount, alreadyDeletedAccount));
+        // Only active accounts are returned by the optimized query
+        when(bankAccountRepository.findByUserIdAndDeletedFalse("1")).thenReturn(List.of(activeAccount));
 
         // Act
         userService.deleteUser("1");
 
         // Assert — only the active account should be cascade-deleted
         assertTrue(activeAccount.isDeleted());
-        assertTrue(alreadyDeletedAccount.isDeleted()); // was already deleted
-        verify(bankAccountRepository, times(1)).save(activeAccount);
-        verify(bankAccountRepository, never()).save(alreadyDeletedAccount); // already deleted, not re-saved
+        verify(bankAccountRepository, times(1)).saveAll(any(List.class));
         verify(userRepository, times(1)).deleteById("1");
     }
 

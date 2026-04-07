@@ -16,8 +16,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import ro.unibuc.prodeng.model.CurrencyEntity;
 import ro.unibuc.prodeng.model.CurrencyExchangeRateEntity;
+import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.CurrencyExchangeRateRepository;
 import ro.unibuc.prodeng.repository.CurrencyRepository;
+import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.SetExchangeRateRequest;
 import ro.unibuc.prodeng.request.SignInRequest;
 import ro.unibuc.prodeng.request.SignUpRequest;
@@ -35,12 +37,14 @@ class ExchangeRateEndpointsIntegrationTest extends IntegrationTestBase {
 
     /** Prefix for test currencies so cleanup doesn't affect shared data. */
     private static final String IT_CUR_PREFIX = "ITE";
+    private static final String IT_USER_PREFIX = "iter_";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private CurrencyRepository currencyRepository;
     @Autowired private CurrencyExchangeRateRepository exchangeRateRepository;
+    @Autowired private UserRepository userRepository;
 
     @BeforeEach
     void cleanIntegrationData() {
@@ -54,6 +58,10 @@ class ExchangeRateEndpointsIntegrationTest extends IntegrationTestBase {
         mongoTemplate.remove(
                 Query.query(Criteria.where("code").regex("^" + IT_CUR_PREFIX)),
                 CurrencyEntity.class);
+        // remove test users
+        mongoTemplate.remove(
+                Query.query(Criteria.where("username").regex("^" + IT_USER_PREFIX)),
+                UserEntity.class);
 
         // seed two currencies for the tests
         seedCurrency(IT_CUR_PREFIX + "A", "IT ExRate A");

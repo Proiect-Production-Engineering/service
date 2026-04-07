@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.RoleEntity;
 import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.model.UserEntity;
@@ -91,12 +92,11 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException(id));
         validateNotAdmin(existing);
 
-        bankAccountRepository.findByUserId(id).forEach(account -> {
-            if (!account.isDeleted()) {
-                account.setDeleted(true);
-                bankAccountRepository.save(account);
-            }
-        });
+        List<BankAccountEntity> accountsToClose = bankAccountRepository.findByUserIdAndDeletedFalse(id);
+        accountsToClose.forEach(account -> account.setDeleted(true));
+        if (!accountsToClose.isEmpty()) {
+            bankAccountRepository.saveAll(accountsToClose);
+        }
 
         userRepository.deleteById(id);
         log.info("User {} deleted, bank accounts cascaded", id);

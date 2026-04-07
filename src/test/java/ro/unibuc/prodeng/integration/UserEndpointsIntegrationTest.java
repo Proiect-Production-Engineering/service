@@ -14,7 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import ro.unibuc.prodeng.integration.IntegrationTestBase;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.BankAccountRepository;
@@ -26,6 +25,7 @@ import ro.unibuc.prodeng.request.SignUpRequest;
 import ro.unibuc.prodeng.security.jwt.AuthenticationTokenFilter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Integration tests for user management endpoints (/api/users, /api/auth).
- * Uses Testcontainers MongoDB — see {@link ro.unibuc.prodeng.IntegrationTestBase}.
+ * Uses Testcontainers MongoDB — see {@link IntegrationTestBase}.
  */
 @DisplayName("User endpoints integration tests (IT)")
 class UserEndpointsIntegrationTest extends IntegrationTestBase {
@@ -51,15 +51,17 @@ class UserEndpointsIntegrationTest extends IntegrationTestBase {
     // ------------------------------------------------------------------ setup
     @BeforeEach
     void cleanTestData() {
-        // Remove accounts created by test users
-        mongoTemplate.remove(
-                Query.query(Criteria.where("userId").in(
-                        userRepository.findAll().stream()
-                                .filter(u -> u.getUsername().startsWith(IT_USERNAME_PREFIX))
-                                .map(UserEntity::getId)
-                                .toList())),
-                BankAccountEntity.class);
-        // Remove test users
+        // Find test user IDs via a targeted query instead of loading all users
+        List<String> testUserIds = mongoTemplate.find(
+                Query.query(Criteria.where("username").regex("^" + IT_USERNAME_PREFIX)),
+                UserEntity.class
+        ).stream().map(UserEntity::getId).toList();
+
+        if (!testUserIds.isEmpty()) {
+            mongoTemplate.remove(
+                    Query.query(Criteria.where("userId").in(testUserIds)),
+                    BankAccountEntity.class);
+        }
         mongoTemplate.remove(
                 Query.query(Criteria.where("username").regex("^" + IT_USERNAME_PREFIX)),
                 UserEntity.class);
@@ -82,6 +84,7 @@ class UserEndpointsIntegrationTest extends IntegrationTestBase {
         assertFalse(jwt.isBlank(), "JWT should not be blank");
     }
 
+    // 409 sau 412
     @Test
     void signUp_duplicateUsername_returns400() throws Exception {
         String username = IT_USERNAME_PREFIX + "dup_uname";

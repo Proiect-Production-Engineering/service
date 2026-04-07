@@ -16,14 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import org.springframework.security.access.AccessDeniedException;
-import ro.unibuc.prodeng.model.BankAccountEntity;
-import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
@@ -72,7 +67,7 @@ public class BankAccountController {
     public ResponseEntity<Page<BankAccountResponse>> getAllAccounts(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100));
         Page<BankAccountResponse> accounts = bankAccountService.getAllAccounts(pageable);
         return ResponseEntity.ok(accounts);
     }
@@ -156,16 +151,7 @@ public class BankAccountController {
             @Parameter(description = "Bank account ID") @PathVariable String id,
             @Parameter(description = "Start of time period (ISO-8601)") @RequestParam(required = false) Instant from,
             @Parameter(description = "End of time period (ISO-8601)") @RequestParam(required = false) Instant to) {
-        BankAccountEntity account = bankAccountService.getEntityById(id);
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) auth.getPrincipal();
-        boolean isAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        if (!isAdmin && !account.getUserId().equals(userDetails.getId())) {
-            throw new AccessDeniedException("You do not have access to this account's balance sheet");
-        }
-
-        BalanceSheetResponse balanceSheet = reportingService.getBalanceSheet(id, from, to);
+        BalanceSheetResponse balanceSheet = reportingService.getAuthorizedBalanceSheet(id, from, to);
         return ResponseEntity.ok(balanceSheet);
     }
 }

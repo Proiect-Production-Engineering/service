@@ -50,4 +50,5 @@ infrastructure/loki/durable/
 jmeter.log
 
 ### Jenkins ###
+jenkins_config/.DS_Store
 jenkins_config/

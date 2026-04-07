@@ -1,15 +1,17 @@
 package ro.unibuc.prodeng.service;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
+import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.repository.TransactionRepository;
 import ro.unibuc.prodeng.response.BalanceSheetEntry;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
@@ -22,7 +24,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+@ExtendWith(MockitoExtension.class)
 class ReportingServiceTest {
 
     @Mock
@@ -33,6 +40,11 @@ class ReportingServiceTest {
 
     @InjectMocks
     private ReportingService reportingService;
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
 
     private final BankAccountEntity testAccount = BankAccountEntity.builder()
             .id("acc1")
@@ -228,5 +240,53 @@ class ReportingServiceTest {
         // Assert
         assertEquals(BigDecimal.ZERO, result.currentBalance());
         assertTrue(result.entries().isEmpty());
+    }
+
+    // --- getAuthorizedBalanceSheet ---
+
+    private void setSecurityContext(String userId, boolean isAdmin) {
+        var authorities = isAdmin
+                ? List.of(new SimpleGrantedAuthority("ROLE_USER"), new SimpleGrantedAuthority("ROLE_ADMIN"))
+                : List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        UserDetails principal = UserDetails.builder()
+                .id(userId).username("testuser").email("test@example.com")
+                .password("secret").authorities(authorities).build();
+        var auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        var ctx = SecurityContextHolder.createEmptyContext();
+        ctx.setAuthentication(auth);
+        SecurityContextHolder.setContext(ctx);
+    }
+
+    @Test
+    void testGetAuthorizedBalanceSheet_accountOwner_returnsBalanceSheet() {
+        setSecurityContext("user1", false);
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+        when(transactionRepository.findByAccountIdOrderByTimestampAsc("acc1")).thenReturn(Collections.emptyList());
+
+        BalanceSheetResponse result = reportingService.getAuthorizedBalanceSheet("acc1", null, null);
+
+        assertNotNull(result);
+        assertEquals("acc1", result.accountId());
+    }
+
+    @Test
+    void testGetAuthorizedBalanceSheet_differentUser_throwsAccessDenied() {
+        setSecurityContext("other-user", false);
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+
+        assertThrows(AccessDeniedException.class,
+                () -> reportingService.getAuthorizedBalanceSheet("acc1", null, null));
+    }
+
+    @Test
+    void testGetAuthorizedBalanceSheet_admin_canAccessAnyAccount() {
+        setSecurityContext("admin-user", true);
+        when(bankAccountService.getEntityById("acc1")).thenReturn(testAccount);
+        when(transactionRepository.findByAccountIdOrderByTimestampAsc("acc1")).thenReturn(Collections.emptyList());
+
+        BalanceSheetResponse result = reportingService.getAuthorizedBalanceSheet("acc1", null, null);
+
+        assertNotNull(result);
+        assertEquals("acc1", result.accountId());
     }
 }

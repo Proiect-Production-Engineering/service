@@ -2,7 +2,6 @@ package ro.unibuc.prodeng.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,16 +11,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.exception.GlobalExceptionHandler;
-import ro.unibuc.prodeng.model.BankAccountEntity;
-import ro.unibuc.prodeng.model.UserDetails;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.CreateTransferRequest;
 import ro.unibuc.prodeng.response.BalanceSheetResponse;
@@ -42,7 +37,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class BankAccountControllerTest {
 
     @Mock
@@ -70,25 +65,6 @@ class BankAccountControllerTest {
                 .build();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
-
-        // Set up SecurityContext for balance-sheet authorization checks
-        UserDetails principal = UserDetails.builder()
-                .id("user-1")
-                .username("john")
-                .email("john@example.com")
-                .password("secret")
-                .authorities(List.of())
-                .build();
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-    }
-
-    @AfterEach
-    void tearDown() {
-        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -366,12 +342,9 @@ class BankAccountControllerTest {
     @Test
     void testGetBalanceSheet_existingAccount_returnsOk() throws Exception {
         // Arrange
-        BankAccountEntity accountEntity = BankAccountEntity.builder()
-                .id("acc-1").userId("user-1").build();
-        when(bankAccountService.getEntityById("acc-1")).thenReturn(accountEntity);
         BalanceSheetResponse balanceSheet = new BalanceSheetResponse(
                 "acc-1", "John Doe", "EUR", BigDecimal.valueOf(1000), Collections.emptyList());
-        when(reportingService.getBalanceSheet(eq("acc-1"), any(), any())).thenReturn(balanceSheet);
+        when(reportingService.getAuthorizedBalanceSheet(eq("acc-1"), any(), any())).thenReturn(balanceSheet);
 
         // Act & Assert
         mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-1").contentType(MediaType.APPLICATION_JSON))
@@ -384,7 +357,7 @@ class BankAccountControllerTest {
     @Test
     void testGetBalanceSheet_nonExistingAccount_returnsNotFound() throws Exception {
         // Arrange
-        when(bankAccountService.getEntityById("999"))
+        when(reportingService.getAuthorizedBalanceSheet(eq("999"), any(), any()))
                 .thenThrow(new EntityNotFoundException("Account"));
 
         // Act & Assert
@@ -394,10 +367,9 @@ class BankAccountControllerTest {
 
     @Test
     void testGetBalanceSheet_unauthorizedUser_returnsForbidden() throws Exception {
-        // Arrange — account belongs to user-2, but SecurityContext is authenticated as user-1
-        BankAccountEntity othersAccount = BankAccountEntity.builder()
-                .id("acc-2").userId("user-2").build();
-        when(bankAccountService.getEntityById("acc-2")).thenReturn(othersAccount);
+        // Arrange
+        when(reportingService.getAuthorizedBalanceSheet(eq("acc-2"), any(), any()))
+                .thenThrow(new AccessDeniedException("You do not have access to this account's balance sheet"));
 
         // Act & Assert
         mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-2").contentType(MediaType.APPLICATION_JSON))
@@ -406,27 +378,10 @@ class BankAccountControllerTest {
 
     @Test
     void testGetBalanceSheet_adminUser_canAccessOtherUsersAccount() throws Exception {
-        // Arrange — re-set SecurityContext with an admin principal
-        SecurityContextHolder.clearContext();
-        UserDetails adminPrincipal = UserDetails.builder()
-                .id("admin-1")
-                .username("admin")
-                .email("admin@example.com")
-                .password("secret")
-                .authorities(List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")))
-                .build();
-        UsernamePasswordAuthenticationToken adminAuth =
-                new UsernamePasswordAuthenticationToken(adminPrincipal, null, adminPrincipal.getAuthorities());
-        SecurityContext adminContext = SecurityContextHolder.createEmptyContext();
-        adminContext.setAuthentication(adminAuth);
-        SecurityContextHolder.setContext(adminContext);
-
-        BankAccountEntity othersAccount = BankAccountEntity.builder()
-                .id("acc-2").userId("user-2").build();
-        when(bankAccountService.getEntityById("acc-2")).thenReturn(othersAccount);
+        // Arrange
         BalanceSheetResponse balanceSheet = new BalanceSheetResponse(
                 "acc-2", "Jane Smith", "GBP", BigDecimal.valueOf(500), Collections.emptyList());
-        when(reportingService.getBalanceSheet(eq("acc-2"), any(), any())).thenReturn(balanceSheet);
+        when(reportingService.getAuthorizedBalanceSheet(eq("acc-2"), any(), any())).thenReturn(balanceSheet);
 
         // Act & Assert
         mockMvc.perform(get("/api/accounts/{id}/balance-sheet", "acc-2").contentType(MediaType.APPLICATION_JSON))

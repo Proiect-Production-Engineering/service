@@ -29,6 +29,7 @@ public class AdminService {
     private final MongoTemplate mongoTemplate;
     private final BankAccountRepository bankAccountRepository;
     private final Counter adminSearchCounter;
+    private final Counter adminAccountSearchCounter;
 
     public AdminService(MongoTemplate mongoTemplate, MeterRegistry meterRegistry,
                         BankAccountRepository bankAccountRepository) {
@@ -37,7 +38,12 @@ public class AdminService {
         this.adminSearchCounter = Counter.builder("admin.transactions.search.count")
                 .description("Number of transaction searches performed by admin")
                 .register(meterRegistry);
+        this.adminAccountSearchCounter = Counter.builder("admin.accounts.search.count")
+                .description("Number of account searches performed by admin")
+                .register(meterRegistry);
     }
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     public Page<TransactionResponse> searchTransactions(TransactionSearchRequest request) {
         adminSearchCounter.increment();
@@ -45,7 +51,7 @@ public class AdminService {
         Query query = buildSearchQuery(request);
 
         int page = request.page() != null ? request.page() : 0;
-        int size = request.size() != null ? request.size() : 20;
+        int size = request.size() != null ? Math.min(request.size(), MAX_PAGE_SIZE) : 20;
         Pageable pageable = PageRequest.of(page, size);
 
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), TransactionEntity.class);
@@ -60,7 +66,7 @@ public class AdminService {
     }
 
     public Page<BankAccountResponse> searchAccounts(AccountSearchRequest request) {
-        adminSearchCounter.increment();
+        adminAccountSearchCounter.increment();
 
         Query query = new Query();
 
@@ -72,7 +78,7 @@ public class AdminService {
         }
 
         int page = request.page() != null ? request.page() : 0;
-        int size = request.size() != null ? request.size() : 20;
+        int size = request.size() != null ? Math.min(request.size(), MAX_PAGE_SIZE) : 20;
         Pageable pageable = PageRequest.of(page, size);
 
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), BankAccountEntity.class);
@@ -90,8 +96,7 @@ public class AdminService {
 
         if (request.accountId() != null && !request.accountId().isBlank()) {
             query.addCriteria(Criteria.where("accountId").is(request.accountId()));
-        }
-        if (request.iban() != null && !request.iban().isBlank()) {
+        } else if (request.iban() != null && !request.iban().isBlank()) {
             bankAccountRepository.findByIban(request.iban()).ifPresent(account ->
                     query.addCriteria(Criteria.where("accountId").is(account.getId()))
             );

@@ -122,7 +122,7 @@ public class BankAccountService {
             throw new IllegalArgumentException("Account is already closed");
         }
 
-        BigDecimal balance = account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
+        BigDecimal balance = getEffectiveBalance(account);
         if (balance.compareTo(BigDecimal.ZERO) != 0) {
             throw new IllegalArgumentException("Account balance must be zero before closing (current balance: " + balance + ")");
         }
@@ -166,7 +166,7 @@ public class BankAccountService {
             throw new IllegalArgumentException("Source and target accounts must have the same currency");
         }
 
-        BigDecimal sourceBalance = sourceAccount.getBalance() == null ? BigDecimal.ZERO : sourceAccount.getBalance();
+        BigDecimal sourceBalance = getEffectiveBalance(sourceAccount);
         if (sourceBalance.compareTo(amount) < 0) {
             throw new IllegalArgumentException("Insufficient funds in source account");
         }
@@ -175,7 +175,7 @@ public class BankAccountService {
         String description = request.description();
 
         // Update stored balances atomically within the transaction
-        BigDecimal targetBalance = targetAccount.getBalance() == null ? BigDecimal.ZERO : targetAccount.getBalance();
+        BigDecimal targetBalance = getEffectiveBalance(targetAccount);
 
         BigDecimal updatedSource = sourceBalance.subtract(amount);
         BigDecimal updatedTarget = targetBalance.add(amount);
@@ -183,8 +183,7 @@ public class BankAccountService {
         sourceAccount.setBalance(updatedSource);
         targetAccount.setBalance(updatedTarget);
 
-        bankAccountRepository.save(sourceAccount);
-        bankAccountRepository.save(targetAccount);
+        bankAccountRepository.saveAll(List.of(sourceAccount, targetAccount));
 
         log.info("Transfer of {} from account {} to account {} completed", amount, sourceAccount.getId(), targetAccount.getId());
 
@@ -229,6 +228,10 @@ public class BankAccountService {
             }
         } while (bankAccountRepository.existsByIban(iban));
         return iban;
+    }
+
+    private BigDecimal getEffectiveBalance(BankAccountEntity account) {
+        return account.getBalance() == null ? BigDecimal.ZERO : account.getBalance();
     }
 
     private String getCurrentUserId() {

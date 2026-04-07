@@ -20,7 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
@@ -28,7 +28,7 @@ import ro.unibuc.prodeng.request.CreateCurrencyRequest;
 import ro.unibuc.prodeng.response.CurrencyResponse;
 import ro.unibuc.prodeng.service.CurrencyService;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class CurrencyControllerTest {
 
     @Mock

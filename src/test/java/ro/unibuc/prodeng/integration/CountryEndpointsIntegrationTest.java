@@ -13,7 +13,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import ro.unibuc.prodeng.model.CountryEntity;
+import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.CountryRepository;
+import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateCountryRequest;
 import ro.unibuc.prodeng.request.SignInRequest;
 import ro.unibuc.prodeng.request.SignUpRequest;
@@ -30,17 +32,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CountryEndpointsIntegrationTest extends IntegrationTestBase {
 
     private static final String IT_COUNTRY_PREFIX = "X";
+    private static final String IT_USER_PREFIX = "itcty_";
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private CountryRepository countryRepository;
+    @Autowired private UserRepository userRepository;
 
     @BeforeEach
     void cleanIntegrationData() {
         mongoTemplate.remove(
                 Query.query(Criteria.where("code").regex("^" + IT_COUNTRY_PREFIX)),
                 CountryEntity.class);
+        mongoTemplate.remove(
+                Query.query(Criteria.where("username").regex("^" + IT_USER_PREFIX)),
+                UserEntity.class);
     }
 
     // ============================================================ GET /api/countries

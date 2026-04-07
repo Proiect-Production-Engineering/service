@@ -4,14 +4,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import ro.unibuc.prodeng.model.UserDetails;
@@ -23,7 +22,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class JwtUtilitiesTest {
 
     @InjectMocks
@@ -187,7 +186,7 @@ class JwtUtilitiesTest {
     }
 
     @Test
-    void testValidateJwtToken_tokenSignedWithDifferentKey_throwsSignatureException() {
+    void testValidateJwtToken_tokenSignedWithDifferentKey_returnsFalse() {
         // Arrange
         Key differentKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
         String tokenWithWrongKey = Jwts.builder()
@@ -197,8 +196,8 @@ class JwtUtilitiesTest {
                 .signWith(differentKey, SignatureAlgorithm.HS512)
                 .compact();
 
-        // Act & Assert — SignatureException is not caught by validateJwtToken
-        assertThrows(SignatureException.class, () -> jwtUtilities.validateJwtToken(tokenWithWrongKey));
+        // Act & Assert
+        assertFalse(jwtUtilities.validateJwtToken(tokenWithWrongKey));
     }
 
     @Test

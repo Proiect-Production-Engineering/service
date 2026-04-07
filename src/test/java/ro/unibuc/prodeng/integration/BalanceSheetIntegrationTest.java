@@ -11,18 +11,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.CountryEntity;
 import ro.unibuc.prodeng.model.CurrencyEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
-import ro.unibuc.prodeng.repository.BankAccountRepository;
+import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.CountryRepository;
 import ro.unibuc.prodeng.repository.CurrencyRepository;
 import ro.unibuc.prodeng.repository.TransactionRepository;
-import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateBankAccountRequest;
 import ro.unibuc.prodeng.request.SignInRequest;
 import ro.unibuc.prodeng.request.SignUpRequest;
@@ -51,28 +54,45 @@ class BalanceSheetIntegrationTest extends IntegrationTestBase {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private MongoTemplate mongoTemplate;
+
+    @Autowired
     private CurrencyRepository currencyRepository;
 
     @Autowired
     private CountryRepository countryRepository;
 
     @Autowired
-    private BankAccountRepository bankAccountRepository;
-
-    @Autowired
     private TransactionRepository transactionRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
         seedCurrencyAndCountryIfNeeded();
-        transactionRepository.deleteAll();
-        bankAccountRepository.deleteAll();
-        userRepository.deleteAll(userRepository.findAll().stream()
-                .filter(u -> u.getUsername() != null && u.getUsername().startsWith(IT_USER_PREFIX))
-                .toList());
+
+        // Find test user IDs with a targeted query instead of loading all users
+        var testUserIds = mongoTemplate.find(
+                Query.query(Criteria.where("username").regex("^" + IT_USER_PREFIX)),
+                UserEntity.class
+        ).stream().map(UserEntity::getId).toList();
+
+        if (!testUserIds.isEmpty()) {
+            var testAccountIds = mongoTemplate.find(
+                    Query.query(Criteria.where("userId").in(testUserIds)),
+                    BankAccountEntity.class
+            ).stream().map(BankAccountEntity::getId).toList();
+
+            if (!testAccountIds.isEmpty()) {
+                mongoTemplate.remove(
+                        Query.query(Criteria.where("accountId").in(testAccountIds)),
+                        TransactionEntity.class);
+            }
+            mongoTemplate.remove(
+                    Query.query(Criteria.where("userId").in(testUserIds)),
+                    BankAccountEntity.class);
+        }
+        mongoTemplate.remove(
+                Query.query(Criteria.where("username").regex("^" + IT_USER_PREFIX)),
+                UserEntity.class);
     }
 
     private void seedCurrencyAndCountryIfNeeded() {

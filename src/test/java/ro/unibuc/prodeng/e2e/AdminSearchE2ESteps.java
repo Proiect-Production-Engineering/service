@@ -23,7 +23,7 @@ import org.springframework.web.client.RestTemplate;
  */
 public class AdminSearchE2ESteps {
 
-    private static final String DEFAULT_ADMIN_PASSWORD = "test-admin-password";
+    private static final String DEFAULT_ADMIN_PASSWORD = "admin";
 
     private final RestTemplate restTemplate = new RestTemplate();
 
