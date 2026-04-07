@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import ro.unibuc.prodeng.model.CurrencyExchangeRateEntity;
 import ro.unibuc.prodeng.repository.CurrencyExchangeRateRepository;
@@ -26,7 +26,7 @@ import ro.unibuc.prodeng.repository.CurrencyRepository;
 import ro.unibuc.prodeng.request.SetExchangeRateRequest;
 import ro.unibuc.prodeng.response.ExchangeRateResponse;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class CurrencyExchangeRateServiceTest {
 
     @Mock

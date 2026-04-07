@@ -14,10 +14,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import ro.unibuc.prodeng.exception.GlobalExceptionHandler;
 import ro.unibuc.prodeng.request.AccountSearchRequest;
 import ro.unibuc.prodeng.request.TransactionSearchRequest;
 import ro.unibuc.prodeng.response.BankAccountResponse;
@@ -34,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class AdminControllerTest {
 
     @Mock
@@ -49,7 +50,9 @@ class AdminControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(adminController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(adminController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }

@@ -19,7 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BankAccountEntity;
@@ -40,7 +40,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
+@ExtendWith(MockitoExtension.class)
 class BankAccountServiceTest {
 
     @Mock
@@ -149,8 +149,7 @@ class BankAccountServiceTest {
 
         assertEquals(0, new BigDecimal("800.00").compareTo(source.getBalance()));
         assertEquals(0, new BigDecimal("200.00").compareTo(target.getBalance()));
-        verify(bankAccountRepository).save(source);
-        verify(bankAccountRepository).save(target);
+        verify(bankAccountRepository).saveAll(any(List.class));
     }
 
     @Test
@@ -422,8 +421,7 @@ class BankAccountServiceTest {
         assertEquals(2, result.size());
         assertEquals(0, new BigDecimal("800.00").compareTo(source.getBalance()));
         assertEquals(0, new BigDecimal("200.00").compareTo(target.getBalance()));
-        verify(bankAccountRepository).save(source);
-        verify(bankAccountRepository).save(target);
+        verify(bankAccountRepository).saveAll(any(List.class));
         verify(transactionRepository).saveAll(any(List.class));
     }
 

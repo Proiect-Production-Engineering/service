@@ -1,6 +1,7 @@
 package ro.unibuc.prodeng.exception;
 
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -41,11 +42,19 @@ public class GlobalExceptionHandler {
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
-                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value"
+                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value",
+                        (msg1, msg2) -> msg1 + "; " + msg2
                 ));
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLocking(OptimisticLockingFailureException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Concurrent modification detected, please retry"));
     }
 
     @ExceptionHandler(DuplicateKeyException.class)

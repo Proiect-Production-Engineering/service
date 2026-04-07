@@ -99,7 +99,7 @@ public class SafeTransferE2ESteps {
     private String adminSignIn() {
         if (adminJwt != null) return adminJwt;
         String pw = System.getenv("ADMIN_PASSWORD");
-        if (pw == null || pw.isBlank()) pw = "change-me";
+        if (pw == null || pw.isBlank()) pw = "admin";
         SignInRequest req = new SignInRequest("admin", pw);
         ResponseEntity<String> resp = rest.postForEntity(baseUrl + "/api/auth/signin", req, String.class);
         assertEquals(HttpStatus.OK, resp.getStatusCode());

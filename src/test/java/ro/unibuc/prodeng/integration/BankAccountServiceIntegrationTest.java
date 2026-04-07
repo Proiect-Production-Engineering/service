@@ -7,14 +7,16 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import ro.unibuc.prodeng.integration.IntegrationTestBase;
 import ro.unibuc.prodeng.model.BankAccountEntity;
 import ro.unibuc.prodeng.model.TransactionEntity;
 import ro.unibuc.prodeng.model.TransactionEntity.TransactionType;
@@ -28,6 +30,7 @@ import ro.unibuc.prodeng.service.BankAccountService;
 class BankAccountServiceIntegrationTest extends IntegrationTestBase {
 
     private static final String CURRENT_USER_ID = "it-user-1";
+    private static final String IT_IBAN_PREFIX = "IT-IBAN-";
 
     @Autowired
     private BankAccountService bankAccountService;
@@ -38,11 +41,25 @@ class BankAccountServiceIntegrationTest extends IntegrationTestBase {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private MongoTemplate mongoTemplate;
+
     @BeforeEach
     void setUp() {
-        // Arrange
-        transactionRepository.deleteAll();
-        bankAccountRepository.deleteAll();
+        // Find test account IDs with a targeted query instead of loading all accounts
+        var testAccountIds = mongoTemplate.find(
+                Query.query(Criteria.where("iban").regex("^" + IT_IBAN_PREFIX)),
+                BankAccountEntity.class
+        ).stream().map(BankAccountEntity::getId).toList();
+
+        if (!testAccountIds.isEmpty()) {
+            mongoTemplate.remove(
+                    Query.query(Criteria.where("accountId").in(testAccountIds)),
+                    TransactionEntity.class);
+        }
+        mongoTemplate.remove(
+                Query.query(Criteria.where("iban").regex("^" + IT_IBAN_PREFIX)),
+                BankAccountEntity.class);
 
         UserDetails principal = UserDetails.builder()
                 .id(CURRENT_USER_ID)
@@ -55,6 +72,11 @@ class BankAccountServiceIntegrationTest extends IntegrationTestBase {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
         SecurityContextHolder.setContext(context);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
