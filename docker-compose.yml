@@ -1,7 +1,6 @@
 services:
   prod-eng:
-    image: prod-eng-img
-    build: .
+    image: ${PROD_ENG_IMAGE:-prod-eng-img}
     ports:
       - 8080:8080
       # Port for debug
@@ -14,7 +13,8 @@ services:
     profiles:
       - "prod-eng-service"
   jenkins:
-    image: jenkins/jenkins
+    build: ./infrastructure/jenkins
+    image: jenkins-with-docker
     ports:
       - 8082:8080
       - 50000:50000
@@ -24,12 +24,12 @@ services:
         source: ${JENKINS_CONFIG_ROOT:-/workspaces/jenkins_config}
         target: /var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
       - ./Dockerfile:/Dockerfile
-      - /usr/libexec/docker/cli-plugins/docker-compose:/usr/libexec/docker/cli-plugins/docker-compose
     profiles:
       - "prod-eng-service"
     user: 0:0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   mongo:
     image: mongo:6.0.20
     restart: always
