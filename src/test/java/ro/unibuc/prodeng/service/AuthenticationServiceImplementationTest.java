@@ -38,6 +38,9 @@ class AuthenticationServiceImplementationTest {
     @Mock
     private PasswordEncoder encoder;
 
+    @Mock
+    private MetricsService metricsService;
+
     @InjectMocks
     private AuthenticationServiceImplementation authService;
 

@@ -27,6 +27,7 @@ public class AuthenticationServiceImplementation implements AuthenticationServic
     private final AuthenticationManager authenticationManager;
     private final JwtUtilities jwtUtilities;
     private final PasswordEncoder encoder;
+    private final MetricsService metricsService;
 
     @Override
     public String signInUser(SignInRequest signInRequest) {
@@ -55,6 +56,7 @@ public class AuthenticationServiceImplementation implements AuthenticationServic
                 .roles(new ArrayList<>(List.of(new RoleEntity("ROLE_USER"))))
                 .build();
         userRepository.save(user);
+        metricsService.recordUserCreated();
 
         log.info("New user registered: {}", user.getUsername());
 

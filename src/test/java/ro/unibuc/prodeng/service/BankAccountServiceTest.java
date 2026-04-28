@@ -58,6 +58,9 @@ class BankAccountServiceTest {
     @Mock
     private IBANService ibanService;
 
+    @Mock
+    private MetricsService metricsService;
+
     @InjectMocks
     private BankAccountService bankAccountService;
 

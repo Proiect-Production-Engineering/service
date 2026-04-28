@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +38,7 @@ public class BankAccountService {
     private final CurrencyService currencyService;
     private final TransactionRepository transactionRepository;
     private final IBANService ibanService;
+    private final MetricsService metricsService;
 
     public BankAccountResponse createAccount(CreateBankAccountRequest request) {
         String normalizedCurrency = request.currencyCode().toUpperCase();
@@ -134,6 +136,23 @@ public class BankAccountService {
 
     @Transactional
     public List<TransactionResponse> transfer(CreateTransferRequest request) {
+        Timer transferTimer = metricsService.getTransferTimer();
+        Timer.Sample sample = transferTimer != null ? Timer.start() : null;
+        try {
+            List<TransactionResponse> result = doTransfer(request);
+            metricsService.recordTransfer("success");
+            return result;
+        } catch (RuntimeException e) {
+            metricsService.recordTransfer("failure");
+            throw e;
+        } finally {
+            if (sample != null) {
+                sample.stop(transferTimer);
+            }
+        }
+    }
+
+    private List<TransactionResponse> doTransfer(CreateTransferRequest request) {
         if (request.sourceAccountId().equals(request.targetAccountId())) {
             throw new IllegalArgumentException("Source and target accounts must be different");
         }

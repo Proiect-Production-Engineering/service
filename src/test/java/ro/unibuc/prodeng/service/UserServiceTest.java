@@ -44,6 +44,9 @@ class UserServiceTest {
     @Mock
     private BankAccountRepository bankAccountRepository;
 
+    @Mock
+    private MetricsService metricsService;
+
     @InjectMocks
     private UserService userService;
 

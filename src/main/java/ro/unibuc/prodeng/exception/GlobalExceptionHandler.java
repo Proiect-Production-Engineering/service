@@ -1,5 +1,6 @@
 package ro.unibuc.prodeng.exception;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -10,14 +11,28 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import ro.unibuc.prodeng.service.MetricsService;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Optional so unit tests that instantiate this class via `new GlobalExceptionHandler()`
+    // (without a Spring context) keep working without rewiring.
+    @Autowired(required = false)
+    private MetricsService metricsService;
+
+    private void recordError(Throwable ex) {
+        if (metricsService != null) {
+            metricsService.recordError(ex.getClass().getSimpleName());
+        }
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
+        recordError(ex);
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", ex.getMessage()));
@@ -25,6 +40,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        recordError(ex);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
@@ -32,6 +48,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException ex) {
+        recordError(ex);
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", ex.getMessage()));
@@ -39,6 +56,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
+        recordError(ex);
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(
                         FieldError::getField,
@@ -52,6 +70,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, String>> handleOptimisticLocking(OptimisticLockingFailureException ex) {
+        recordError(ex);
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "Concurrent modification detected, please retry"));
@@ -59,8 +78,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateKeyException.class)
     public ResponseEntity<Map<String, String>> handleDuplicateKey(DuplicateKeyException ex) {
+        recordError(ex);
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "A record with the given unique key already exists"));
     }
 }
+

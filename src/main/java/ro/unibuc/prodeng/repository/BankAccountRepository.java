@@ -26,4 +26,6 @@ public interface BankAccountRepository extends MongoRepository<BankAccountEntity
     boolean existsByUserIdAndCurrencyCodeAndDeletedFalse(String userId, String currencyCode);
 
     long countByUserIdAndDeletedFalse(String userId);
+
+    long countByDeletedFalse();
 }

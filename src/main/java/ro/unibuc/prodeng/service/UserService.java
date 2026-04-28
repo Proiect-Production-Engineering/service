@@ -31,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final BankAccountRepository bankAccountRepository;
+    private final MetricsService metricsService;
 
     public UserResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -75,6 +76,7 @@ public class UserService {
                 .roles(new ArrayList<>(List.of(new RoleEntity("ROLE_USER"))))
                 .build();
         UserEntity saved = userRepository.save(user);
+        metricsService.recordUserCreated();
         return toResponse(saved);
     }
 
