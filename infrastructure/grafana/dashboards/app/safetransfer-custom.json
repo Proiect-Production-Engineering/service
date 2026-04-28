@@ -32,7 +32,7 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Users created (total)",
+      "title": "User registrations (total)",
       "description": "Business metric: total users registered since application start.",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "x": 0, "y": 0, "w": 6, "h": 6 },
@@ -57,7 +57,7 @@
       },
       "targets": [
         {
-          "expr": "sum(app_users_created_total)",
+          "expr": "sum(app_user_registrations_total)",
           "refId": "A",
           "legendFormat": "users created"
         }

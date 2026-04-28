@@ -14,7 +14,7 @@ import ro.unibuc.prodeng.repository.BankAccountRepository;
  * Five metrics are exposed under the {@code app_*} namespace, one per category
  * required by Lab 8 (business, performance, error, resource, domain-specific):
  * <ul>
- *   <li>{@code app_users_created_total} (Counter, business)</li>
+ *   <li>{@code app_user_registrations_total} (Counter, business)</li>
  *   <li>{@code app_transfer_duration_seconds} (Timer, performance)</li>
  *   <li>{@code app_errors_total} (Counter with {@code exception} tag, error)</li>
  *   <li>{@code app_active_bank_accounts} (Gauge, resource)</li>
@@ -31,7 +31,7 @@ public class MetricsService {
     public MetricsService(MeterRegistry registry, BankAccountRepository bankAccountRepository) {
         this.registry = registry;
 
-        this.userCreatedCounter = Counter.builder("app_users_created_total")
+        this.userCreatedCounter = Counter.builder("app_user_registrations_total")
                 .description("Total number of users registered in the system")
                 .tag("type", "business")
                 .register(registry);
