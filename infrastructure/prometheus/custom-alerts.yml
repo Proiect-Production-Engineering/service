@@ -1,0 +1,95 @@
+groups:
+  - name: CustomAlerts
+    rules:
+      # ------------------------------------------------------------------
+      # Availability — is the service reachable?
+      # ------------------------------------------------------------------
+      - alert: WARNING-ServiceHealthCheckFailing
+        expr: up{job="spring-prod-eng-app"} == 0
+        for: 30s
+        labels:
+          severity: warning
+          category: availability
+          alert_group: service-health
+        annotations:
+          summary: "Service health check failing (instance {{ $labels.instance }})"
+          description: "The spring-prod-eng-app target has been unreachable for more than 30 seconds.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CRITICAL-ServiceHealthCheckFailing
+        expr: up{job="spring-prod-eng-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          alert_group: service-health
+        annotations:
+          summary: "Service unreachable for 2+ minutes (instance {{ $labels.instance }})"
+          description: "The spring-prod-eng-app target has been unreachable for more than 2 minutes — page on-call.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # ------------------------------------------------------------------
+      # Performance — is the service responding fast enough?
+      # avg latency = sum/count over 5m, excluding actuator endpoints
+      # ------------------------------------------------------------------
+      - alert: WARNING-HighRequestLatency
+        expr: |
+          sum by (uri) (rate(http_server_requests_seconds_sum{uri!~"/actuator.*"}[5m]))
+          /
+          sum by (uri) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m]))
+          > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          category: performance
+          alert_group: request-latency
+        annotations:
+          summary: "High average request latency on {{ $labels.uri }}"
+          description: "Average request latency exceeds 500ms over the last 5 minutes on {{ $labels.uri }}.\n  VALUE = {{ $value }}s\n  LABELS = {{ $labels }}"
+
+      - alert: CRITICAL-HighRequestLatency
+        expr: |
+          sum by (uri) (rate(http_server_requests_seconds_sum{uri!~"/actuator.*"}[5m]))
+          /
+          sum by (uri) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m]))
+          > 2
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+          alert_group: request-latency
+        annotations:
+          summary: "Very high request latency on {{ $labels.uri }}"
+          description: "Average request latency exceeds 2s over the last 5 minutes on {{ $labels.uri }}.\n  VALUE = {{ $value }}s\n  LABELS = {{ $labels }}"
+
+      # ------------------------------------------------------------------
+      # Quality — is the service producing correct results?
+      # 5xx ratio over total requests
+      # ------------------------------------------------------------------
+      - alert: WARNING-HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count[5m]))
+          > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          category: quality
+          alert_group: error-rate
+        annotations:
+          summary: "Elevated 5xx error rate ({{ $value | humanizePercentage }})"
+          description: "More than 5% of requests are returning 5xx errors over the last 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: CRITICAL-HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count[5m]))
+          > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          category: quality
+          alert_group: error-rate
+        annotations:
+          summary: "Severe 5xx error rate ({{ $value | humanizePercentage }})"
+          description: "More than 20% of requests are returning 5xx errors over the last 5 minutes — page on-call.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
