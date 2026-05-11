@@ -142,7 +142,7 @@ Exemple de intrebari urmarite prin metrics:
 - cum se comporta memoria si consumul de resurse
 
 ## Alerts
-Alerting-ul a fost construit cu Prometheus si AlertManager.
+Alerting-ul a fost construit cu Prometheus si AlertManager. Am folosit MailTrap pentru a simula generarea de alerte pe email.
 
 Tipuri de alerte:
 - availability: serviciul nu mai raspunde
@@ -170,6 +170,8 @@ sequenceDiagram
     O->>A: aplica silence daca este nevoie
 ```
 
+![Mailtrap](image-6.png)
+
 ## Dashboards
 Grafana a fost folosit pentru vizualizarea metricilor si pentru corelarea lor cu alertele.
 
@@ -177,13 +179,17 @@ Am urmarit:
 - request rate pe endpoint
 - p95 response time
 - utilizare memorie
-- rata de erori
+- rata de erori și numarul de erori dupa excepție
 - starea containerelor si a MongoDB
+- statusul și latența transferurilor
 
 Dashboard-urile permit:
 - analiza rapida a starii sistemului
 - observarea tendintelor in timp
 - corelarea alertelor cu valorile din grafice
+
+![Metrici Grafana](image-7.png)
+![Metrici Grafana](image-8.png)
 
 ## Testare si calitate
 Am acoperit mai multe niveluri de testare:
