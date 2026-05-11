@@ -147,7 +147,7 @@ public class BankAccountService {
             throw e;
         } finally {
             if (sample != null) {
-                sample.stop(transferTimer);
+                metricsService.recordTransferTimer(sample.stop(transferTimer));
             }
         }
     }

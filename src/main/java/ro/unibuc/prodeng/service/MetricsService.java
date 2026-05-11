@@ -36,9 +36,18 @@ public class MetricsService {
                 .tag("type", "business")
                 .register(registry);
 
+        // NOTE: We deliberately do NOT call publishPercentiles(...) here.
+        // publishPercentiles(...) makes Micrometer emit the meter as a Prometheus
+        // *summary* with client-side {quantile="..."} series and no _bucket
+        // series. The Grafana panel "Transfer latency (p50/p95/p99)" uses
+        //     histogram_quantile(..., rate(app_transfer_duration_seconds_bucket[5m]))
+        // which requires histogram buckets to exist. publishPercentileHistogram(true)
+        // alone causes Micrometer to emit a real Prometheus histogram with
+        // _bucket series, which is what the dashboard expects (and is also
+        // correctly aggregatable across instances).
         this.transferTimer = Timer.builder("app_transfer_duration_seconds")
                 .description("Time taken to execute a money transfer between bank accounts")
-                .publishPercentiles(0.5, 0.95, 0.99)
+                .publishPercentileHistogram(true)
                 .register(registry);
 
         // Resource gauge: number of currently active (non-deleted) bank accounts.
@@ -52,6 +61,10 @@ public class MetricsService {
 
     public void recordUserCreated() {
         userCreatedCounter.increment();
+    }
+
+    public void recordTransferTimer(Long duration) {
+        transferTimer.record(duration, java.util.concurrent.TimeUnit.NANOSECONDS);
     }
 
     public Timer getTransferTimer() {

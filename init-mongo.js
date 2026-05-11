@@ -40,31 +40,67 @@ print("Ensuring bank_accounts indexes...");
 db.bank_accounts.createIndex({ iban: 1 }, { unique: true });
 db.bank_accounts.createIndex({ userId: 1 });
 
+// Patch any documents seeded without a @Version field so Spring Data MongoDB
+// treats them as existing entities (version=null → isNew()=true → insert → 409).
+var patched = db.bank_accounts.updateMany(
+    { version: { $exists: false } },
+    { $set: { version: NumberLong("0") } }
+);
+if (patched.modifiedCount > 0) {
+    print("Patched " + patched.modifiedCount + " bank_account document(s) with missing version field.");
+}
+
 print("Looking up admin user...");
 var adminUser = db.users.findOne({ username: "admin" });
 if (adminUser) {
     var adminId = adminUser._id.toString();
+
+    // --- EUR account (used by integration / E2E tests) ---
     if (!db.bank_accounts.findOne({ iban: "RO83OPPCo1JNAQ8eEheih5zI" })) {
-        var accountInsertResult = db.bank_accounts.insertOne({
+        var eurResult = db.bank_accounts.insertOne({
             iban: "RO83OPPCo1JNAQ8eEheih5zI",
             userId: adminId,
             currencyCode: "EUR",
             countryCode: "RO",
             accountHolderName: "Admin",
-            balance: 1000000.0,
-            deleted: false
+            balance: NumberDecimal("1000000.00"),
+            deleted: false,
+            version: NumberLong("0")
         });
-        var adminAccountId = accountInsertResult.insertedId.toString();
         db.transactions.insertOne({
-            accountId: adminAccountId,
+            accountId: eurResult.insertedId.toString(),
             type: "CREDIT",
             amount: NumberDecimal("1000000.00"),
             description: "Initial seed balance",
             timestamp: new Date()
         });
-        print("Admin bank account created with 1,000,000 EUR and initial CREDIT transaction (userId: " + adminId + ").");
+        print("Admin EUR account created with 1,000,000 EUR (userId: " + adminId + ").");
     } else {
-        print("Admin bank account already exists, skipping.");
+        print("Admin EUR account already exists, skipping.");
+    }
+
+    // --- RON account (used by generate_metric_traffic.sh for transfer-timer traffic) ---
+    if (!db.bank_accounts.findOne({ iban: "RO47ADMNr0n0000000000001" })) {
+        var ronResult = db.bank_accounts.insertOne({
+            iban: "RO47ADMNr0n0000000000001",
+            userId: adminId,
+            currencyCode: "RON",
+            countryCode: "RO",
+            accountHolderName: "Admin",
+            balance: NumberDecimal("50000.00"),
+            deleted: false,
+            version: NumberLong("0")
+        });
+        db.transactions.insertOne({
+            accountId: ronResult.insertedId.toString(),
+            type: "CREDIT",
+            amount: NumberDecimal("50000.00"),
+            description: "Initial seed balance (RON)",
+            timestamp: new Date()
+        });
+        print("Admin RON account created with 50,000 RON (userId: " + adminId + ").");
+    } else {
+        print("Admin RON account already exists, skipping.");
     }
 } else {
     print("WARNING: Admin user not found. Start the Spring Boot app first, then re-run this script.");
