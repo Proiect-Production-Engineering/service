@@ -207,6 +207,9 @@ Unit Tests
 ![JaCoCo](image-4.png)
 JaCoCo
 
+![Integration Tests](image-9.png)
+Integration Tests
+
 ![Jenkins](image-1.png)
 Jenkins
 
